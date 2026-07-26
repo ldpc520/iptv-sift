@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>测绘空间 IP 筛选工具合集</title>
+    <title>组播&酒店IP有效性筛选</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -87,6 +87,70 @@
         }
         .header-link .link-icon {
             font-size: 1.1rem;
+        }
+
+        /* Header Dropdown */
+        .header-dropdown {
+            position: relative;
+            flex-shrink: 0;
+            margin-top: 4px;
+        }
+        .header-drop-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 16px;
+            background: rgba(99, 102, 241, 0.1);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.25s;
+            white-space: nowrap;
+            font-family: inherit;
+        }
+        .header-drop-btn:hover {
+            color: #818cf8;
+            border-color: var(--primary);
+            background: rgba(99, 102, 241, 0.15);
+            box-shadow: 0 2px 8px rgba(99, 102, 241, 0.2);
+        }
+        .header-drop-btn .drop-arrow {
+            font-size: 0.75rem;
+            transition: transform 0.2s;
+        }
+        .header-drop-menu {
+            display: none;
+            position: absolute;
+            top: calc(100% + 6px);
+            right: 0;
+            min-width: 200px;
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 6px;
+            z-index: 100;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+        }
+        .header-drop-menu.show {
+            display: block;
+        }
+        .header-drop-menu a {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 12px;
+            color: var(--text-primary);
+            text-decoration: none;
+            font-size: 0.85rem;
+            border-radius: 6px;
+            transition: background 0.15s, color 0.15s;
+        }
+        .header-drop-menu a:hover {
+            background: rgba(99, 102, 241, 0.12);
+            color: #818cf8;
         }
 
         /* Tab Navigation */
@@ -857,12 +921,19 @@
         <div class="header">
             <div style="width:140px; flex-shrink:0;"></div>
             <div class="header-center">
-                <h1>📡 测绘空间 IP 筛选工具合集</h1>
+                <h1>📡 组播&酒店IP有效性筛选</h1>
                 <p class="subtitle">酒店 IP 筛选 + 组播 IP 筛选 · 一站式 IPTV 检测工具箱</p>
             </div>
-            <a href="https://fofa.info/" target="_blank" class="header-link" title="访问测绘空间 FOFA">
-                <span class="link-icon">🌐</span> 测绘空间
-            </a>
+            <div class="header-dropdown" id="headerDropdown">
+                <button class="header-drop-btn" onclick="document.getElementById('headerDropMenu').classList.toggle('show')">
+                    <span class="link-icon">🌐</span> 测绘空间 <span class="drop-arrow">▾</span>
+                </button>
+                <div class="header-drop-menu" id="headerDropMenu">
+                    <a href="https://fofa.info/" target="_blank">🌐 FOFA 测绘空间</a>
+                    <a href="https://quake.360.net/" target="_blank">🔍 360 网络测绘空间</a>
+                    <a href="https://www.zoomeye.org/" target="_blank">👁 钟馗之眼 ZoomEye</a>
+                </div>
+            </div>
         </div>
 
         <!-- Tab Navigation -->
@@ -1260,7 +1331,7 @@
             </div>
         </div>
 
-        <div class="mc-footer">测绘空间 IP 筛选工具合集 | Powered by Flask + aiohttp</div>
+        <div class="mc-footer">组播&酒店IP有效性筛选 | Powered by Flask + aiohttp</div>
     </div>
 
     <!-- Toast container -->
@@ -1705,6 +1776,11 @@
             });
             document.addEventListener('click', (e) => {
                 if (!mcCombo.contains(e.target)) mcCloseDropdown();
+                // 点击外部关闭测绘空间下拉菜单
+                const hd = document.getElementById('headerDropdown');
+                if (hd && !hd.contains(e.target)) {
+                    document.getElementById('headerDropMenu').classList.remove('show');
+                }
             });
         });
 
