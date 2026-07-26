@@ -1,0 +1,18 @@
+# Git
+.git
+.gitignore
+
+# Python 缓存
+__pycache__/
+*.py[cod]
+*.pyc
+*.egg-info/
+.pytest_cache/
+
+# 文档/说明（不进入镜像，仅作本地备注）
+组播&酒店IP有效性筛选终版.txt
+
+# 本地数据/临时文件
+data/
+*.log
+.DS_Store

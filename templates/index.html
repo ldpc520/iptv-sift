@@ -1,0 +1,2377 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>测绘空间 IP 筛选工具合集</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --primary: #6366f1;
+            --primary-hover: #4f46e5;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --bg: #0f172a;
+            --bg-card: #1e293b;
+            --bg-input: #334155;
+            --text: #e2e8f0;
+            --text-muted: #94a3b8;
+            --border: #475569;
+            --radius: 12px;
+            --radius-sm: 8px;
+            --tab-bg: #1a2332;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            background-image:
+                radial-gradient(ellipse at 20% 50%, rgba(99, 102, 241, 0.08) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 20%, rgba(16, 185, 129, 0.06) 0%, transparent 50%),
+                radial-gradient(ellipse at 50% 80%, rgba(245, 158, 11, 0.04) 0%, transparent 50%);
+        }
+
+        .container { max-width: 1300px; margin: 0 auto; padding: 20px; }
+
+        /* Header */
+        .header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            padding: 32px 0 0;
+        }
+        .header-center {
+            flex: 1;
+            text-align: center;
+        }
+        .header h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #818cf8, #34d399);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 6px;
+        }
+        .header .subtitle {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+        .header-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 16px;
+            background: rgba(99, 102, 241, 0.1);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 0.85rem;
+            font-weight: 500;
+            transition: all 0.25s;
+            white-space: nowrap;
+            flex-shrink: 0;
+            margin-top: 4px;
+        }
+        .header-link:hover {
+            color: #818cf8;
+            border-color: var(--primary);
+            background: rgba(99, 102, 241, 0.15);
+            box-shadow: 0 2px 8px rgba(99, 102, 241, 0.2);
+            transform: translateY(-1px);
+        }
+        .header-link .link-icon {
+            font-size: 1.1rem;
+        }
+
+        /* Tab Navigation */
+        .tab-nav {
+            display: flex;
+            justify-content: center;
+            gap: 4px;
+            margin: 24px 0 20px;
+            background: var(--tab-bg);
+            border-radius: var(--radius);
+            padding: 4px;
+            width: fit-content;
+            max-width: 100%;
+            margin-left: auto;
+            margin-right: auto;
+            border: 1px solid var(--border);
+            flex-wrap: wrap;
+        }
+        .tab-btn {
+            flex: 1;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 10px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.25s;
+            background: transparent;
+            color: var(--text-muted);
+            white-space: nowrap;
+        }
+        .tab-btn:hover { color: var(--text); background: rgba(255,255,255,0.05); }
+        .tab-btn.active {
+            background: var(--primary);
+            color: white;
+            box-shadow: 0 2px 12px rgba(99,102,241,0.3);
+        }
+
+        /* Tab Content */
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        /* Card */
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 24px;
+            margin-bottom: 20px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 24px rgba(0,0,0,0.3);
+        }
+        .card-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .card-title .icon {
+            width: 32px; height: 32px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+        }
+        .icon-input { background: rgba(99,102,241,0.15); color: #818cf8; }
+        .icon-source { background: rgba(245,158,11,0.15); color: #fbbf24; }
+        .icon-result { background: rgba(16,185,129,0.15); color: #34d399; }
+
+        /* Textarea */
+        textarea {
+            width: 100%;
+            min-height: 160px;
+            background: var(--bg-input);
+            border: 2px solid var(--border);
+            border-radius: var(--radius-sm);
+            color: var(--text);
+            padding: 14px;
+            font-size: 0.9rem;
+            font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+            resize: vertical;
+            transition: border-color 0.2s;
+            line-height: 1.6;
+        }
+        textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(99,102,241,0.15);
+        }
+        textarea::placeholder { color: #64748b; }
+
+        /* Buttons */
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 14px;
+        }
+        .btn {
+            padding: 10px 22px;
+            border: none;
+            border-radius: var(--radius-sm);
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; pointer-events: none; }
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+        .btn-primary:hover:not(:disabled) {
+            background: var(--primary-hover);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(99,102,241,0.4);
+        }
+        .btn-success {
+            background: var(--success);
+            color: white;
+        }
+        .btn-success:hover:not(:disabled) {
+            filter: brightness(1.1);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(16,185,129,0.4);
+        }
+        .btn-outline {
+            background: transparent;
+            border: 2px solid var(--border);
+            color: var(--text);
+        }
+        .btn-outline:hover:not(:disabled) {
+            border-color: var(--primary);
+            color: #818cf8;
+        }
+        .btn-sm { padding: 6px 14px; font-size: 0.8rem; }
+
+        /* Radio group */
+        .radio-group {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+        .radio-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            padding: 10px 18px;
+            border: 2px solid var(--border);
+            border-radius: var(--radius-sm);
+            transition: all 0.2s;
+            font-size: 0.9rem;
+        }
+        .radio-item:hover { border-color: var(--primary); }
+        .radio-item.active {
+            border-color: var(--primary);
+            background: rgba(99,102,241,0.1);
+        }
+        .radio-item input[type="radio"] {
+            accent-color: var(--primary);
+            width: 16px; height: 16px;
+        }
+        .radio-label { display: flex; flex-direction: column; }
+        .radio-label .path {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
+
+        /* Stats */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+        .stat-card {
+            background: var(--bg-input);
+            border-radius: var(--radius-sm);
+            padding: 14px 18px;
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+        .stat-value.success { color: var(--success); }
+        .stat-value.warning { color: var(--warning); }
+        .stat-label {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        /* Progress bar */
+        .progress-wrap { margin: 12px 0; }
+        .progress-bar {
+            height: 6px;
+            background: var(--bg-input);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary), var(--success));
+            border-radius: 3px;
+            transition: width 0.3s;
+            width: 0%;
+        }
+        .progress-text {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-top: 6px;
+            text-align: center;
+        }
+
+        /* Toggle switch */
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 48px;
+            height: 26px;
+        }
+        .toggle-switch input { opacity: 0; width: 0; height: 0; }
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: var(--bg-input);
+            border: 2px solid var(--border);
+            border-radius: 26px;
+            transition: all 0.3s;
+        }
+        .toggle-slider:before {
+            content: "";
+            position: absolute;
+            height: 18px; width: 18px;
+            left: 2px; bottom: 2px;
+            background: var(--text-muted);
+            border-radius: 50%;
+            transition: all 0.3s;
+        }
+        .toggle-switch input:checked + .toggle-slider {
+            background: var(--primary);
+            border-color: var(--primary);
+        }
+        .toggle-switch input:checked + .toggle-slider:before {
+            transform: translateX(22px);
+            background: white;
+        }
+        .toggle-switch input:disabled + .toggle-slider {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        /* Result cards (Hotel) */
+        .result-server {
+            background: var(--bg-input);
+            border-radius: var(--radius-sm);
+            margin-bottom: 12px;
+            overflow: hidden;
+        }
+        .result-server-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 16px;
+            cursor: pointer;
+            user-select: none;
+            border-bottom: 1px solid transparent;
+            transition: background 0.2s;
+        }
+        .result-server-header:hover { background: rgba(255,255,255,0.03); }
+        .result-server.open .result-server-header {
+            border-bottom-color: var(--border);
+            background: rgba(99,102,241,0.08);
+        }
+        .result-ip {
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 600;
+            color: #818cf8;
+        }
+        .result-badge {
+            font-size: 0.75rem;
+            padding: 3px 10px;
+            border-radius: 20px;
+            background: rgba(16,185,129,0.15);
+            color: var(--success);
+        }
+        .result-arrow {
+            transition: transform 0.2s;
+            color: var(--text-muted);
+        }
+        .result-server.open .result-arrow { transform: rotate(180deg); }
+        .result-channels { display: none; padding: 8px 0; }
+        .result-server.open .result-channels { display: block; }
+        .channel-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 16px;
+            border-bottom: 1px solid rgba(71,85,105,0.3);
+            font-size: 0.85rem;
+            transition: background 0.15s;
+        }
+        .channel-row:hover { background: rgba(255,255,255,0.02); }
+        .channel-row:last-child { border-bottom: none; }
+        .channel-name {
+            font-weight: 500;
+            color: var(--text);
+            flex: 1;
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .channel-url {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            max-width: 500px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            margin: 0 12px;
+        }
+        .channel-speed {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            font-weight: 600;
+            min-width: 70px;
+            text-align: right;
+            margin-right: 10px;
+            white-space: nowrap;
+        }
+        .speed-fast { color: #34d399; }
+        .speed-mid { color: #fbbf24; }
+        .speed-slow { color: #f87171; }
+        .speed-na { color: var(--text-muted); }
+
+        .btn-copy {
+            padding: 4px 10px;
+            font-size: 0.7rem;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            background: transparent;
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: all 0.15s;
+            white-space: nowrap;
+        }
+        .btn-copy:hover { border-color: var(--primary); color: var(--primary); }
+        .btn-play {
+            padding: 4px 10px;
+            font-size: 0.7rem;
+            border: 1px solid var(--primary);
+            border-radius: 4px;
+            background: rgba(99,102,241,0.1);
+            color: var(--primary);
+            cursor: pointer;
+            transition: all 0.15s;
+            white-space: nowrap;
+            margin-left: 6px;
+        }
+        .btn-play:hover {
+            background: rgba(99,102,241,0.25);
+            box-shadow: 0 0 8px rgba(99,102,241,0.3);
+        }
+
+        .sort-group {
+            display: flex;
+            gap: 6px;
+            margin-left: 12px;
+        }
+        .btn-sort {
+            padding: 3px 10px;
+            font-size: 0.7rem;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            background: transparent;
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: all 0.15s;
+            white-space: nowrap;
+        }
+        .btn-sort:hover { border-color: var(--primary); color: var(--primary); }
+        .btn-sort.active { background: rgba(99,102,241,0.15); border-color: var(--primary); color: var(--primary); }
+
+        /* Summary banner */
+        .summary-banner {
+            background: linear-gradient(135deg, rgba(99,102,241,0.1), rgba(16,185,129,0.1));
+            border: 1px solid rgba(99,102,241,0.3);
+            border-radius: var(--radius-sm);
+            padding: 16px 20px;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .summary-banner .count-big {
+            font-size: 2.5rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #818cf8, #34d399);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        /* Empty state */
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-muted);
+        }
+        .empty-state .icon-lg { font-size: 3rem; margin-bottom: 12px; opacity: 0.5; }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 12px 20px;
+            border-radius: var(--radius-sm);
+            color: white;
+            font-size: 0.85rem;
+            font-weight: 500;
+            z-index: 1000;
+            animation: slideIn 0.3s ease;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+        }
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        .toast-success { background: var(--success); }
+        .toast-error { background: var(--danger); }
+        .toast-info { background: var(--primary); }
+
+        /* ========== 组播 Tab 特殊样式 ========== */
+
+        /* 组播选择区 */
+        .mc-select-group {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            align-items: flex-end;
+        }
+        .mc-select-item {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .mc-select-item label {
+            font-size: 13px;
+            color: var(--text-muted);
+            font-weight: bold;
+        }
+        .mc-select-item select,
+        .mc-select-item input {
+            padding: 8px 12px;
+            border: 2px solid var(--border);
+            border-radius: 6px;
+            font-size: 14px;
+            outline: none;
+            background: var(--bg-input);
+            color: var(--text);
+            min-width: 200px;
+        }
+        .mc-select-item select:focus,
+        .mc-select-item input:focus {
+            border-color: var(--primary);
+        }
+
+        /* 可编辑组合框 */
+        .combo-box {
+            position: relative;
+            display: inline-block;
+            min-width: 320px;
+        }
+        .combo-box input {
+            width: 100%;
+            padding-right: 30px;
+            background: var(--bg-input) !important;
+            color: var(--text) !important;
+        }
+        .combo-box .combo-arrow {
+            position: absolute;
+            right: 6px;
+            top: 50%;
+            transform: translateY(-50%);
+            pointer-events: none;
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+        .combo-dropdown {
+            display: none;
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            max-height: 240px;
+            overflow-y: auto;
+            background: var(--bg-card);
+            border: 2px solid var(--primary);
+            border-top: none;
+            border-radius: 0 0 6px 6px;
+            z-index: 1000;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+        .combo-dropdown.show { display: block; }
+        .combo-dropdown .combo-option {
+            padding: 8px 12px;
+            cursor: pointer;
+            font-size: 14px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            color: var(--text);
+        }
+        .combo-dropdown .combo-option:hover {
+            background: rgba(99,102,241,0.15);
+            color: #818cf8;
+        }
+        .combo-dropdown .combo-option-custom {
+            border-top: 1px solid var(--border);
+            color: #818cf8;
+            font-style: italic;
+        }
+
+        /* 组播标签 */
+        .mc-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 3px 10px;
+            border-radius: 14px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .mc-tag-ok { background: rgba(16,185,129,0.15); color: #34d399; }
+        .mc-tag-fail { background: rgba(239,68,68,0.15); color: #f87171; }
+        .mc-tag-info { background: rgba(99,102,241,0.15); color: #818cf8; }
+
+        .mc-stats {
+            display: flex;
+            gap: 16px;
+            margin-top: 10px;
+            flex-wrap: wrap;
+        }
+
+        /* 组播表格 */
+        .mc-table-wrap { overflow-x: auto; margin-top: 12px; }
+        .mc-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+        .mc-table th, .mc-table td {
+            padding: 10px 14px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+            white-space: nowrap;
+        }
+        .mc-table th {
+            background: var(--bg-input);
+            font-weight: bold;
+            color: var(--text-muted);
+            position: sticky;
+            top: 0;
+        }
+        .mc-table tr:hover { background: rgba(255,255,255,0.02); }
+        .mc-table .url-cell {
+            max-width: 400px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            font-family: 'Consolas', monospace;
+            font-size: 13px;
+        }
+        .mc-btn-play {
+            padding: 4px 10px;
+            background: var(--success);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .mc-btn-play:hover { filter: brightness(1.2); }
+        .mc-btn-copy {
+            padding: 4px 10px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: bold;
+            margin-left: 4px;
+        }
+        .mc-btn-copy:hover { background: var(--primary-hover); }
+        .mc-btn-copy.copied { background: var(--success); }
+
+        /* 组播加载动画 */
+        .mc-loading {
+            display: none;
+            text-align: center;
+            padding: 24px 30px 16px;
+            color: var(--primary);
+        }
+        .mc-loading.show { display: block; }
+        .mc-spinner {
+            display: inline-block;
+            width: 32px;
+            height: 32px;
+            border: 3px solid var(--bg-input);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .mc-progress-wrap { margin: 14px auto 0; max-width: 500px; }
+        .mc-progress-bar-outer {
+            width: 100%;
+            height: 22px;
+            background: var(--bg-input);
+            border-radius: 11px;
+            overflow: hidden;
+            position: relative;
+        }
+        .mc-progress-bar-inner {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary), var(--success));
+            border-radius: 11px;
+            transition: width 0.3s ease;
+            width: 0%;
+        }
+
+        .mc-footer {
+            text-align: center;
+            color: var(--text-muted);
+            padding: 20px;
+            font-size: 12px;
+        }
+
+        /* ========== IPTV 频道查询 Tab 样式 ========== */
+
+        .channel-grid {
+            display:grid;
+            grid-template-columns:repeat(auto-fill,minmax(220px,1fr));
+            gap:10px;
+        }
+        .channel-card {
+            background:var(--bg-card); border:1px solid var(--border);
+            border-radius:10px; padding:16px 18px; cursor:pointer;
+            transition:all 0.25s; position:relative; overflow:hidden;
+        }
+        .channel-card::before {
+            content:''; position:absolute; left:0; top:0; bottom:0; width:3px;
+            background:linear-gradient(135deg,var(--primary),#8b5cf6);
+            border-radius:3px 0 0 3px; opacity:0; transition:opacity 0.25s;
+        }
+        .channel-card:hover {
+            background:var(--bg-input); border-color:var(--primary);
+            transform:translateY(-2px); box-shadow:0 4px 16px rgba(0,0,0,0.3);
+        }
+        .channel-card:hover::before { opacity:1; }
+        .channel-card .ch-num {
+            font-size:11px; font-weight:700; color:#818cf8;
+            text-transform:uppercase; letter-spacing:1px; margin-bottom:4px;
+        }
+        .channel-card .ch-name {
+            font-size:15px; font-weight:600; color:var(--text); line-height:1.4;
+            word-break:break-all;
+        }
+        .channel-card .ch-type {
+            display:inline-block; font-size:10px; font-weight:600;
+            padding:2px 8px; border-radius:10px; margin-top:6px;
+            background:rgba(99,102,241,0.15); color:#818cf8;
+        }
+        .channel-card .ch-url {
+            font-size:11px; color:var(--text-muted); margin-top:6px;
+            word-break:break-all; opacity:0; max-height:0;
+            overflow:hidden; transition:all 0.25s;
+        }
+        .channel-card:hover .ch-url { opacity:0.7; max-height:60px; }
+        .channel-card .ch-actions {
+            display:flex; gap:6px; margin-top:10px;
+            opacity:0; max-height:0; overflow:hidden;
+            transition:all 0.25s;
+        }
+        .channel-card:hover .ch-actions { opacity:1; max-height:40px; }
+        .ch-actions .btn-play-sm {
+            flex:1; padding:5px 10px; font-size:11px; font-weight:600;
+            border-radius:6px; border:none; cursor:pointer;
+            background:rgba(34,197,94,0.15); color:#4ade80;
+            border:1px solid rgba(34,197,94,0.25);
+            transition:all 0.2s; font-family:inherit;
+        }
+        .ch-actions .btn-play-sm:hover { background:rgba(34,197,94,0.3); }
+        .ch-actions .btn-play-sm.pp {
+            background:rgba(245,158,11,0.15); color:#fbbf24;
+            border-color:rgba(245,158,11,0.25);
+        }
+        .ch-actions .btn-play-sm.pp:hover { background:rgba(245,158,11,0.3); }
+
+        .filter-tabs { display:flex; }
+        .filter-tab {
+            padding:6px 16px; border-radius:20px; font-size:13px; font-weight:500;
+            cursor:pointer; border:1px solid var(--border); color:var(--text-muted);
+            background:transparent; transition:all 0.25s; font-family:inherit;
+        }
+        .filter-tab:hover { border-color:var(--primary); color:var(--text); }
+        .filter-tab.active { background:var(--primary); border-color:var(--primary); color:#fff; }
+        .filter-tab .count { opacity:0.7; margin-left:4px; font-size:11px; }
+
+        .history-tags { display:flex; gap:8px; flex-wrap:wrap; }
+        .history-tag {
+            display:inline-flex; align-items:center; gap:6px;
+            padding:6px 12px; background:rgba(99,102,241,0.1);
+            border:1px solid rgba(99,102,241,0.2); border-radius:20px;
+            font-size:12px; color:#818cf8; cursor:pointer;
+            transition:all 0.25s; font-family:'JetBrains Mono','Consolas',monospace;
+        }
+        .history-tag:hover { background:rgba(99,102,241,0.2); border-color:var(--primary); }
+        .history-tag .remove {
+            width:16px; height:16px; border-radius:50%;
+            display:flex; align-items:center; justify-content:center;
+            font-size:10px; cursor:pointer; opacity:0.5; transition:opacity 0.25s;
+        }
+        .history-tag .remove:hover { opacity:1; background:rgba(239,68,68,0.3); }
+
+        .player-selector label { font-size:12px; color:var(--text-muted); white-space:nowrap; }
+        .player-selector select {
+            padding:4px 10px; border-radius:8px; font-size:12px;
+            background:var(--bg-card); color:var(--text);
+            border:1px solid var(--border); outline:none;
+            cursor:pointer; font-family:inherit;
+        }
+        .player-selector select:focus { border-color:var(--primary); }
+
+        @media (max-width: 768px) {
+            .container { padding: 12px; }
+            .header h1 { font-size: 1.5rem; }
+            .channel-url { display: none; }
+            .stats-grid { grid-template-columns: repeat(2, 1fr); }
+            .mc-select-group { flex-direction: column; }
+            .tab-btn { padding: 10px 14px; font-size: 0.85rem; }
+            .channel-grid { grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:8px; }
+            .channel-card { padding:12px 14px; }
+            .channel-card .ch-name { font-size:13px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <div style="width:140px; flex-shrink:0;"></div>
+            <div class="header-center">
+                <h1>📡 测绘空间 IP 筛选工具合集</h1>
+                <p class="subtitle">酒店 IP 筛选 + 组播 IP 筛选 · 一站式 IPTV 检测工具箱</p>
+            </div>
+            <a href="https://fofa.info/" target="_blank" class="header-link" title="访问测绘空间 FOFA">
+                <span class="link-icon">🌐</span> 测绘空间
+            </a>
+        </div>
+
+        <!-- Tab Navigation -->
+        <div class="tab-nav">
+            <button class="tab-btn active" onclick="switchTab('hotel')" id="tabHotel">🏨 酒店IP筛选</button>
+            <button class="tab-btn" onclick="switchTab('multicast')" id="tabMulticast">📡 组播IP筛选</button>
+            <button class="tab-btn" onclick="switchTab('iptv')" id="tabIptv">📺 酒店频道查询</button>
+            <button class="tab-btn" onclick="switchTab('proxy')" id="tabProxy">🛡️ 代理检测</button>
+        </div>
+
+        <!-- ==================== 酒店 IP 筛选 Tab ==================== -->
+        <div class="tab-content active" id="tabContentHotel">
+            <!-- Input Card -->
+            <div class="card">
+                <div class="card-title">
+                    <span class="icon icon-input">📋</span>
+                    输入 IP:Port 列表
+                </div>
+                <textarea id="hotelInput" placeholder="在此粘贴 IP:Port 列表，每行一个或多个...
+例如：
+192.168.1.1:8080
+10.0.0.1:9901
+192.168.2.100:80
+
+支持中文冒号和混合格式"></textarea>
+                <div class="btn-group">
+                    <button class="btn btn-outline btn-sm" onclick="hotelPasteFromClipboard()">📋 从剪贴板粘贴</button>
+                    <button class="btn btn-outline btn-sm" onclick="hotelClearInput()">🗑️ 清空</button>
+                    <span id="hotelIpCount" style="margin-left:auto; color: var(--text-muted); font-size:0.85rem; align-self:center;"></span>
+                </div>
+            </div>
+
+            <!-- Source Select Card (已隐藏，改为自动匹配两个接口) -->
+            <div class="card" style="display:none;">
+                <div class="card-title">
+                    <span class="icon icon-source">🔗</span>
+                    选择数据源类型
+                </div>
+                <div class="radio-group">
+                    <label class="radio-item active" id="radioJson" onclick="hotelSelectSource('json')">
+                        <input type="radio" name="source" value="json" checked>
+                        <div class="radio-label">
+                            <span>iptv /live/zh_cn.js</span>
+                            <span class="path">/iptv/live/1000.json?key=txiptv</span>
+                        </div>
+                    </label>
+                    <label class="radio-item" id="radioTxt" onclick="hotelSelectSource('txt')">
+                        <input type="radio" name="source" value="txt">
+                        <div class="radio-label">
+                            <span>zhgxtv 数据源</span>
+                            <span class="path">/ZHGXTV/Public/json/live_interface.txt</span>
+                        </div>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Action Card -->
+            <div class="card">
+                <div class="btn-group">
+                    <button class="btn btn-primary" id="btnHotelFilter" onclick="hotelStepFilter()">🔍 筛选IP</button>
+                    <button class="btn btn-success" id="btnHotelScan" onclick="hotelStepFullScan()">▶️ 拉流验证</button>
+                    <button class="btn btn-outline btn-sm" onclick="hotelStopScan()" id="btnHotelStop" style="display:none;">⏹️ 停止</button>
+                </div>
+                <div style="margin-top:14px; display:flex; align-items:center; gap:12px;">
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="verifyStreamToggle" onchange="hotelToggleVerifyStream()" checked>
+                        <span class="toggle-slider"></span>
+                    </label>
+                    <span style="font-size:0.9rem; color: var(--text);">🔍 拉流验证（检测直播源是否真实可播）</span>
+                    <span id="aiohttpStatus" style="font-size:0.75rem; color: var(--text-muted);"></span>
+                </div>
+
+                <div class="stats-grid" style="margin-top:16px;">
+                    <div class="stat-card">
+                        <div class="stat-value" id="hotelStatTotal">0</div>
+                        <div class="stat-label">提取总数</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value success" id="hotelStatValid">0</div>
+                        <div class="stat-label">连通 IP</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value warning" id="hotelStatServers">0</div>
+                        <div class="stat-label">有效服务器</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="hotelStatChannels">0</div>
+                        <div class="stat-label">总频道数</div>
+                    </div>
+                </div>
+
+                <div class="progress-wrap" id="hotelProgressWrap" style="display:none;">
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="hotelProgressFill"></div>
+                    </div>
+                    <div class="progress-text" id="hotelProgressText">准备中...</div>
+                </div>
+            </div>
+
+            <!-- Results Card -->
+            <div class="card" id="hotelResultCard" style="display:none;">
+                <div class="card-title">
+                    <span class="icon icon-result">✅</span>
+                    扫描结果
+                    <div class="sort-group" id="hotelSortGroup" style="display:none;">
+                        <span style="font-size:0.7rem;color:var(--text-muted);align-self:center;">排序:</span>
+                        <button class="btn-sort active" onclick="hotelSortChannels('speed')">⚡ 速度</button>
+                        <button class="btn-sort" onclick="hotelSortChannels('name')">🔤 名称</button>
+                    </div>
+                    <span style="margin-left:auto; font-size:0.8rem;">
+                        <button class="btn btn-sm btn-outline" onclick="hotelExportM3U()">📥 导出 M3U</button>
+                        <button class="btn btn-sm btn-outline" onclick="hotelExportTXT()">📄 导出 TXT</button>
+                        <button class="btn btn-sm btn-outline" onclick="hotelCopyAll()">📋 复制全部</button>
+                    </span>
+                </div>
+                <div id="hotelSummaryBanner"></div>
+                <div id="hotelResultList"></div>
+            </div>
+        </div>
+
+        <!-- ==================== 组播 IP 筛选 Tab ==================== -->
+        <div class="tab-content" id="tabContentMulticast">
+            <!-- Step 1: Input -->
+            <div class="card">
+                <div class="card-title"><span class="icon icon-input">📋</span> 第一步：输入 IP:端口列表</div>
+                <textarea id="mcInput" placeholder="粘贴IP:端口列表，一行一个或用逗号/空格分隔
+例如：
+192.168.1.1:8080
+10.0.0.1:8000, 172.16.0.1:9000
+192.168.2.1:1234"></textarea>
+                <div class="btn-group">
+                    <button class="btn btn-primary" id="btnMcParse" onclick="mcStep1Parse()">🔍 解析并筛选有效IP</button>
+                    <button class="btn btn-outline" onclick="document.getElementById('mcInput').value=''">✕ 清空</button>
+                </div>
+                <div id="mcParseStats" class="mc-stats" style="margin-top:10px;"></div>
+            </div>
+
+            <!-- Step 2: Select multicast & check -->
+            <div class="card">
+                <div class="card-title"><span class="icon icon-source">🔗</span> 第二步：选择组播ID与协议</div>
+                <div class="mc-select-group">
+                    <div class="mc-select-item">
+                        <label>组播地址（下拉选择或手动输入）</label>
+                        <div class="combo-box" id="mcCombo">
+                            <input type="text" id="mcMulticastInput" placeholder="选择或输入地址，如 239.1.1.1:5000" autocomplete="off">
+                            <span class="combo-arrow">▼</span>
+                            <div class="combo-dropdown" id="mcDropdown"></div>
+                        </div>
+                    </div>
+                    <div class="mc-select-item">
+                        <label>协议</label>
+                        <select id="mcProtocol">
+                            <option value="udp">UDP</option>
+                            <option value="rtp">RTP</option>
+                        </select>
+                    </div>
+                    <div class="mc-select-item">
+                        <label>超时(秒)</label>
+                        <select id="mcTimeout">
+                            <option value="3">3秒</option>
+                            <option value="5" selected>5秒</option>
+                            <option value="8">8秒</option>
+                            <option value="10">10秒</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="btn-group">
+                    <button class="btn btn-success" id="btnMcCheck" onclick="mcStep2Check()" disabled>🚀 开始验证并测速</button>
+                </div>
+                <div id="mcCheckStats" class="mc-stats" style="margin-top:10px;"></div>
+            </div>
+
+            <!-- Loading -->
+            <div class="mc-loading" id="mcLoading">
+                <div class="mc-spinner"></div>
+                <div style="margin-top:12px;">正在验证中，请稍候...</div>
+                <div class="mc-progress-wrap">
+                    <div class="mc-progress-bar-outer">
+                        <div class="mc-progress-bar-inner" id="mcProgressBar" style="width:0%;"></div>
+                    </div>
+                    <div class="progress-text" id="mcProgressText">0 / 0</div>
+                </div>
+            </div>
+
+            <!-- Result Card -->
+            <div class="card" id="mcResultCard" style="display:none;">
+                <div class="card-title" style="justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+                    <div style="display:flex;align-items:center;gap:8px;"><span class="icon icon-result">✅</span> 第三步：验证结果</div>
+                    <div id="mcExportBtns" style="display:none; display:flex; gap:6px;">
+                        <button class="btn btn-sm btn-outline" onclick="mcExportFile('txt')">📄 导出 TXT</button>
+                        <button class="btn btn-sm btn-outline" onclick="mcExportFile('m3u')">🎵 导出 M3U</button>
+                    </div>
+                </div>
+                <div class="mc-table-wrap">
+                    <table class="mc-table">
+                        <thead>
+                            <tr>
+                                <th>序号</th>
+                                <th>IP:端口</th>
+                                <th>状态</th>
+                                <th>响应速度(ms)</th>
+                                <th>播放地址</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="mcResultBody"></tbody>
+                    </table>
+                </div>
+                <div id="mcEmptyTip" class="empty-state" style="display:none;">暂无结果</div>
+            </div>
+        </div>
+
+        <!-- ==================== IPTV 频道查询 Tab ==================== -->
+        <div class="tab-content" id="tabContentIptv">
+            <div class="card">
+                <div class="card-title">
+                    <span class="icon icon-input">📺</span>
+                    输入 IPTV 服务器地址
+                </div>
+                <div style="display:flex;gap:12px;align-items:stretch;">
+                    <div style="flex:1;position:relative;">
+                        <input type="text" id="iptvServerInput" placeholder="例如: 183.2.73.7:9901" autocomplete="off"
+                            style="width:100%;padding:14px 16px;background:var(--bg-input);border:2px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:15px;font-family:'JetBrains Mono','Fira Code','Consolas',monospace;outline:none;transition:border-color 0.2s;"
+                            onfocus="this.style.borderColor='var(--primary)'" onblur="this.style.borderColor='var(--border)'"
+                            onkeydown="if(event.key==='Enter')iptvFetch()">
+                    </div>
+                    <button class="btn btn-primary" id="iptvFetchBtn" onclick="iptvFetch()">🔍 查询</button>
+                </div>
+                <div class="history-tags" id="iptvHistoryTags" style="margin-top:12px;"></div>
+                <div class="btn-group" id="iptvQuickActions" style="display:none;">
+                    <button class="btn btn-sm btn-outline" onclick="iptvExportM3U()">🎵 导出 M3U</button>
+                    <button class="btn btn-sm btn-outline" onclick="iptvExportCSV()">📊 导出 CSV</button>
+                    <button class="btn btn-sm btn-outline" onclick="iptvCopyJSON()">📋 复制 JSON</button>
+                    <button class="btn btn-sm btn-success" onclick="iptvOpenAll()">▶️ 打开播放列表</button>
+                </div>
+            </div>
+
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px;">
+                <div id="iptvStatusBar" style="display:none;display:flex;align-items:center;gap:8px;">
+                    <span id="iptvStatusBadge" style="font-size:13px;color:var(--text-muted);">就绪</span>
+                    <span id="iptvChannelCount" style="font-size:13px;color:var(--text-muted);"></span>
+                </div>
+                <div class="player-selector" style="display:flex;align-items:center;gap:8px;margin-left:auto;">
+                    <span style="font-size:12px;color:var(--text-muted);">播放器:</span>
+                    <select id="iptvPlayerSelect" onchange="iptvSavePlayerPref()"
+                        style="padding:4px 10px;border-radius:8px;font-size:12px;background:var(--bg-card);color:var(--text);border:1px solid var(--border);outline:none;cursor:pointer;font-family:inherit;">
+                        <option value="potplayer">PotPlayer</option>
+                        <option value="vlc">VLC</option>
+                        <option value="mpv">MPV</option>
+                        <option value="iina">IINA</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="filter-tabs" id="iptvFilterTabs" style="display:none;gap:8px;flex-wrap:wrap;margin-bottom:16px;"></div>
+
+            <div class="channel-grid" id="iptvChannelGrid">
+                <div class="empty-state">
+                    <div class="icon-lg">📺</div>
+                    <p>输入 IPTV 服务器地址，点击查询获取频道列表</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== 代理检测 Tab ==================== -->
+        <div class="tab-content" id="tabContentProxy">
+            <!-- Input Card -->
+            <div class="card">
+                <div class="card-title">
+                    <span class="icon icon-input">📥</span>
+                    批量代理IP检测
+                    <span style="font-size:0.75rem;color:var(--text-muted);margin-left:8px;">支持 SOCKS5 / SOCKS4 / HTTP / HTTPS</span>
+                </div>
+                <textarea id="proxyInput" placeholder="请输入代理IP，一行一个，格式：IP:端口&#10;&#10;例如：&#10;192.168.1.1:1080&#10;10.0.0.1:7890&#10;proxy.example.com:8080&#10;127.0.0.1:9050"></textarea>
+
+                <div class="btn-group" style="align-items:flex-end;">
+                    <div class="mc-select-item">
+                        <label>代理类型</label>
+                        <select id="proxyType" style="min-width:120px;">
+                            <option value="all">全部类型</option>
+                            <option value="socks5">SOCKS5</option>
+                            <option value="socks4">SOCKS4</option>
+                            <option value="http">HTTP</option>
+                            <option value="https">HTTPS</option>
+                        </select>
+                    </div>
+                    <div class="mc-select-item">
+                        <label>并发数</label>
+                        <input type="number" id="proxyConcurrency" value="10" min="1" max="50" style="width:70px;text-align:center;padding:8px 12px;border:2px solid var(--border);border-radius:6px;font-size:14px;outline:none;background:var(--bg-input);color:var(--text);">
+                    </div>
+                    <button class="btn btn-primary" id="btnProxyStart" onclick="proxyStartCheck()">▶️ 开始检测</button>
+                    <button class="btn btn-outline btn-sm" onclick="proxyLoadDemo()">📥 加载示例</button>
+                    <span style="margin-left:auto;font-size:0.8rem;color:var(--text-muted);align-self:center;">本机IP: <strong style="color:#818cf8;" id="proxyMyIp">获取中...</strong></span>
+                </div>
+
+                <div id="proxyProgressSection" style="display:none;margin-top:16px;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;font-size:13px;">
+                        <span style="color:var(--text-muted);">检测进度</span>
+                        <span style="color:#818cf8;font-weight:700;font-family:'JetBrains Mono',monospace;" id="proxyProgressText">0 / 0</span>
+                    </div>
+                    <div class="progress-bar" style="margin-bottom:10px;">
+                        <div class="progress-fill" id="proxyProgressBar"></div>
+                    </div>
+                    <div id="proxyProgressLog" style="max-height:160px;overflow-y:auto;font-size:12px;font-family:'JetBrains Mono','Consolas',monospace;color:var(--text-muted);background:rgba(0,0,0,0.2);border-radius:var(--radius-sm);padding:10px 14px;line-height:1.6;"></div>
+                </div>
+            </div>
+
+            <!-- Stats -->
+            <div class="stats-grid" style="margin-bottom:20px;">
+                <div class="stat-card">
+                    <div class="stat-value" id="proxyStatTotal">0</div>
+                    <div class="stat-label">总计检测</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value success" id="proxyStatValid">0</div>
+                    <div class="stat-label">✅ 有效代理</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" style="color:var(--danger);" id="proxyStatInvalid">0</div>
+                    <div class="stat-label">❌ 无效代理</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" style="color:#fbbf24;" id="proxyStatSpeed">0ms</div>
+                    <div class="stat-label">⚡ 平均延迟</div>
+                </div>
+            </div>
+
+            <!-- Results Card -->
+            <div class="card" id="proxyResultCard" style="display:none;">
+                <div class="card-title" style="justify-content:space-between;flex-wrap:wrap;gap:8px;">
+                    <div style="display:flex;align-items:center;gap:8px;">
+                        <span class="icon icon-result">📋</span>
+                        检测结果
+                    </div>
+                    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+                        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;color:var(--text-muted);user-select:none;">
+                            <input type="checkbox" id="proxyCopyDetailMode">
+                            复制详细结果（原始IP + 出口IP + 位置）
+                        </label>
+                        <button class="btn btn-sm btn-success" onclick="proxyCopyValid()">✅ 复制有效代理</button>
+                    </div>
+                </div>
+
+                <!-- 有效代理 -->
+                <div style="margin-bottom:20px;">
+                    <h3 style="font-size:15px;font-weight:700;margin-bottom:12px;display:flex;align-items:center;gap:8px;">
+                        <span style="width:10px;height:10px;border-radius:50%;display:inline-block;background:var(--success);box-shadow:0 0 8px var(--success);"></span>
+                        有效代理 <span style="color:var(--text-muted);font-weight:400;" id="proxyValidCount">(0个)</span>
+                    </h3>
+                    <div class="mc-table-wrap">
+                        <table class="mc-table">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>代理地址</th>
+                                    <th>端口</th>
+                                    <th>类型</th>
+                                    <th>延迟</th>
+                                    <th>出口IP</th>
+                                    <th>位置</th>
+                                    <th>状态</th>
+                                </tr>
+                            </thead>
+                            <tbody id="proxyValidBody">
+                                <tr><td colspan="8"><div class="empty-state">暂无有效代理</div></td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- 无效代理 -->
+                <div>
+                    <h3 style="font-size:15px;font-weight:700;margin-bottom:12px;display:flex;align-items:center;gap:8px;">
+                        <span style="width:10px;height:10px;border-radius:50%;display:inline-block;background:var(--danger);box-shadow:0 0 8px var(--danger);"></span>
+                        无效代理 <span style="color:var(--text-muted);font-weight:400;" id="proxyInvalidCount">(0个)</span>
+                    </h3>
+                    <div class="mc-table-wrap">
+                        <table class="mc-table">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>代理地址</th>
+                                    <th>端口</th>
+                                    <th>类型</th>
+                                    <th>错误信息</th>
+                                    <th>状态</th>
+                                </tr>
+                            </thead>
+                            <tbody id="proxyInvalidBody">
+                                <tr><td colspan="6"><div class="empty-state">暂无无效代理</div></td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="mc-footer">测绘空间 IP 筛选工具合集 | Powered by Flask + aiohttp</div>
+    </div>
+
+    <!-- Toast container -->
+    <div id="toastContainer"></div>
+
+    <script>
+        // ==================== Global ====================
+        let currentTab = 'hotel';
+
+        function switchTab(tab) {
+            currentTab = tab;
+            document.getElementById('tabHotel').classList.toggle('active', tab === 'hotel');
+            document.getElementById('tabMulticast').classList.toggle('active', tab === 'multicast');
+            document.getElementById('tabIptv').classList.toggle('active', tab === 'iptv');
+            document.getElementById('tabProxy').classList.toggle('active', tab === 'proxy');
+            document.getElementById('tabContentHotel').classList.toggle('active', tab === 'hotel');
+            document.getElementById('tabContentMulticast').classList.toggle('active', tab === 'multicast');
+            document.getElementById('tabContentIptv').classList.toggle('active', tab === 'iptv');
+            document.getElementById('tabContentProxy').classList.toggle('active', tab === 'proxy');
+        }
+
+        function showToast(msg, type) {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type}`;
+            toast.textContent = msg;
+            container.appendChild(toast);
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transition = 'opacity 0.3s';
+                setTimeout(() => toast.remove(), 300);
+            }, 2500);
+        }
+
+        function escHtml(str) {
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+        function escAttr(str) {
+            return str.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+        }
+
+        async function copyTextDirect(text) {
+            try {
+                await navigator.clipboard.writeText(text);
+            } catch (e) {
+                const ta = document.createElement('textarea');
+                ta.value = text;
+                ta.style.position = 'fixed';
+                ta.style.left = '-9999px';
+                document.body.appendChild(ta);
+                ta.select();
+                document.execCommand('copy');
+                document.body.removeChild(ta);
+            }
+        }
+
+        function downloadFile(filename, content) {
+            const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        // ==================== 酒店 IP 筛选 ====================
+        let hotelSource = 'json';
+        let hotelVerifyStream = true;
+        let hotelHasAiohttp = true;
+        let hotelExtractedIPs = [];
+        let hotelValidIPs = [];
+        let hotelScanResults = [];
+        let hotelProgressTimer = null;
+        let hotelStopRequested = false;
+        let hotelCurrentSort = 'speed';
+
+        (function() {
+            const statusEl = document.getElementById('aiohttpStatus');
+            {% if has_aiohttp %}
+            hotelHasAiohttp = true;
+            statusEl.innerHTML = '✅ aiohttp 已就绪';
+            statusEl.style.color = 'var(--success)';
+            {% else %}
+            hotelHasAiohttp = false;
+            statusEl.innerHTML = '⚠️ 未安装 aiohttp，拉流验证不可用（pip install aiohttp）';
+            statusEl.style.color = 'var(--warning)';
+            document.getElementById('verifyStreamToggle').disabled = true;
+            {% endif %}
+        })();
+
+        document.getElementById('hotelInput').addEventListener('input', function() {
+            const matches = this.value.match(/(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})\s*[:：]\s*(\d{1,5})/g);
+            document.getElementById('hotelIpCount').textContent = matches ? `检测到 ${matches.length} 个 IP:Port` : '';
+        });
+
+        function hotelSelectSource(type) {
+            hotelSource = type;
+            document.getElementById('radioJson').classList.toggle('active', type === 'json');
+            document.getElementById('radioTxt').classList.toggle('active', type === 'txt');
+            document.querySelector('input[name="source"][value="' + type + '"]').checked = true;
+        }
+
+        function hotelToggleVerifyStream() {
+            hotelVerifyStream = document.getElementById('verifyStreamToggle').checked;
+        }
+
+        async function hotelPasteFromClipboard() {
+            try {
+                const text = await navigator.clipboard.readText();
+                document.getElementById('hotelInput').value = text;
+                document.getElementById('hotelInput').dispatchEvent(new Event('input'));
+                showToast('已粘贴', 'info');
+            } catch (e) {
+                showToast('无法读取剪贴板，请手动粘贴', 'error');
+            }
+        }
+
+        function hotelClearInput() {
+            document.getElementById('hotelInput').value = '';
+            document.getElementById('hotelIpCount').textContent = '';
+        }
+
+        async function hotelApiCall(url, body) {
+            const resp = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            });
+            return resp.json();
+        }
+
+        function hotelStartProgressPolling() {
+            hotelStopProgressPolling();
+            document.getElementById('hotelProgressWrap').style.display = 'block';
+            hotelProgressTimer = setInterval(async () => {
+                try {
+                    const resp = await fetch('/api/progress');
+                    const p = await resp.json();
+                    if (p.total > 0) {
+                        const pct = Math.round((p.checked / p.total) * 100);
+                        document.getElementById('hotelProgressFill').style.width = pct + '%';
+                        let label = p.phase || '';
+                        if (!label) {
+                            if (p.status === 'scanning') label = '正在验证连通性...';
+                            else if (p.status === 'testing') label = '正在测试数据源...';
+                            else if (p.status === 'verifying') label = '正在验证直播流...';
+                        }
+                        document.getElementById('hotelProgressText').textContent =
+                            `${label} ${p.checked}/${p.total} (有效: ${p.valid})`;
+                    }
+                    if (p.status === 'idle' && hotelStopRequested) {
+                        hotelStopProgressPolling();
+                    }
+                } catch (e) {}
+            }, 500);
+        }
+
+        function hotelStopProgressPolling() {
+            if (hotelProgressTimer) {
+                clearInterval(hotelProgressTimer);
+                hotelProgressTimer = null;
+            }
+            document.getElementById('hotelProgressWrap').style.display = 'none';
+            document.getElementById('hotelProgressFill').style.width = '0%';
+        }
+
+        function hotelGetInputText() {
+            return document.getElementById('hotelInput').value.trim();
+        }
+
+        async function hotelStepFilter() {
+            const text = hotelGetInputText();
+            if (!text) { showToast('请先输入 IP:Port 列表', 'error'); return; }
+            hotelStopRequested = false;
+            const btnFilter = document.getElementById('btnHotelFilter');
+            const btnStop = document.getElementById('btnHotelStop');
+            btnFilter.disabled = true;
+            btnStop.style.display = 'inline-flex';
+            hotelStartProgressPolling();
+            try {
+                const extractData = await hotelApiCall('/api/hotel/extract', { text });
+                if (extractData.error) { showToast(extractData.error, 'error'); return; }
+                hotelExtractedIPs = extractData.ips;
+                const verifyData = await hotelApiCall('/api/hotel/verify', { text });
+                hotelValidIPs = verifyData.valid;
+                document.getElementById('hotelStatTotal').textContent = verifyData.total;
+                document.getElementById('hotelStatValid').textContent = verifyData.count;
+                showToast(`筛选完成！提取 ${extractData.ips.length} 个 IP，连通 ${verifyData.count}/${verifyData.total}`, 'success');
+            } finally {
+                hotelStopRequested = true;
+                btnFilter.disabled = false;
+                btnStop.style.display = 'none';
+                setTimeout(hotelStopProgressPolling, 1500);
+            }
+        }
+
+        async function hotelStepFullScan() {
+            const text = hotelGetInputText();
+            if (!text) { showToast('请先输入 IP:Port 列表', 'error'); return; }
+            hotelStopRequested = false;
+            const btnScan = document.getElementById('btnHotelScan');
+            const btnStop = document.getElementById('btnHotelStop');
+            btnScan.disabled = true;
+            btnStop.style.display = 'inline-flex';
+            hotelStartProgressPolling();
+            try {
+                const data = await hotelApiCall('/api/hotel/scan', {
+                    text,
+                    source_type: hotelSource,
+                    verify_stream: hotelVerifyStream && hotelHasAiohttp
+                });
+                if (data.error) { showToast(data.error, 'error'); return; }
+                hotelScanResults = data.results;
+                document.getElementById('hotelStatTotal').textContent = data.valid_ips.length;
+                document.getElementById('hotelStatValid').textContent = data.valid_ips.length;
+                document.getElementById('hotelStatServers').textContent = data.count;
+                document.getElementById('hotelStatChannels').textContent = data.total_channels;
+                hotelRenderResults(data);
+                showToast(`扫描完成！${data.count} 个服务器，共 ${data.total_channels} 个频道`, 'success');
+            } finally {
+                hotelStopRequested = true;
+                btnScan.disabled = false;
+                btnStop.style.display = 'none';
+                setTimeout(hotelStopProgressPolling, 1500);
+            }
+        }
+
+        function hotelStopScan() {
+            hotelStopRequested = true;
+            document.getElementById('btnHotelStop').style.display = 'none';
+            showToast('已请求停止', 'info');
+        }
+
+        function hotelFormatSpeed(speed, speedMs) {
+            // speedMs 是响应时间(ms)，越小越好；speed 是 KB/s，越大越好
+            if (speedMs && speedMs > 0) {
+                let cls = 'speed-fast';
+                if (speedMs > 1000) cls = 'speed-slow';
+                else if (speedMs > 300) cls = 'speed-mid';
+                return `<span class="${cls}">${speedMs} ms</span>`;
+            }
+            if (!speed || speed === 0) return '<span class="speed-na">--</span>';
+            let cls = 'speed-slow';
+            if (speed >= 500) cls = 'speed-fast';
+            else if (speed >= 100) cls = 'speed-mid';
+            let text;
+            if (speed >= 1024) text = (speed / 1024).toFixed(1) + ' MB/s';
+            else text = speed.toFixed(0) + ' KB/s';
+            return `<span class="${cls}">${text}</span>`;
+        }
+
+        function hotelRenderResults(data) {
+            const card = document.getElementById('hotelResultCard');
+            const summaryBanner = document.getElementById('hotelSummaryBanner');
+            const resultList = document.getElementById('hotelResultList');
+            const sortGroup = document.getElementById('hotelSortGroup');
+
+            if (data.count === 0) {
+                card.style.display = 'block';
+                sortGroup.style.display = 'none';
+                summaryBanner.innerHTML = '';
+                resultList.innerHTML = '<div class="empty-state"><div class="icon-lg">📭</div><p>没有找到有效的频道数据</p></div>';
+                return;
+            }
+
+            card.style.display = 'block';
+            const hasSpeed = data.results.some(r => (r.avg_speed > 0 || r.avg_speed_ms > 0));
+            sortGroup.style.display = hasSpeed ? 'flex' : 'none';
+
+            const totalSpeedMs = data.results.reduce((s, r) => s + (r.avg_speed_ms || 0), 0);
+            const avgAllSpeedMs = data.count > 0 ? (totalSpeedMs / data.count).toFixed(0) : 0;
+            summaryBanner.innerHTML = `
+                <div class="count-big">${data.total_channels}</div>
+                <div>
+                    <div style="font-weight:600;">频道总数</div>
+                    <div style="font-size:0.8rem;color:var(--text-muted);">
+                        ${data.count} 个有效服务器${hasSpeed ? ` · 均速 ${avgAllSpeedMs} ms` : ''}
+                    </div>
+                </div>
+            `;
+
+            resultList.innerHTML = data.results.map((r, i) => {
+                let speedBadge = '';
+                if (r.avg_speed_ms > 0) {
+                    let sc = 'speed-fast';
+                    if (r.avg_speed_ms > 1000) sc = 'speed-slow';
+                    else if (r.avg_speed_ms > 300) sc = 'speed-mid';
+                    speedBadge = `<span class="${sc}" style="font-size:0.75rem;margin-left:8px;">⚡${r.avg_speed_ms.toFixed(0)} ms</span>`;
+                    if (r.min_speed_ms > 0) {
+                        speedBadge += `<span style="font-size:0.7rem;color:var(--text-muted);margin-left:4px;">最快 ${r.min_speed_ms.toFixed(0)} ms</span>`;
+                    }
+                } else if (r.avg_speed > 0) {
+                    speedBadge = `<span style="font-size:0.75rem;margin-left:8px;color:#34d399;">⚡${r.avg_speed.toFixed(0)} KB/s</span>`;
+                }
+                return `
+                <div class="result-server" id="hotelServer${i}">
+                    <div class="result-server-header" onclick="hotelToggleServer(${i})">
+                        <span>
+                            <span class="result-ip">${r.ip}:${r.port}</span>
+                            <span class="result-badge" style="margin-left:10px;">${r.channel_count} 频道</span>
+                            ${speedBadge}
+                        </span>
+                        <span class="result-arrow">▼</span>
+                    </div>
+                    <div class="result-channels">
+                        ${r.channels.map((ch, j) => `
+                            <div class="channel-row">
+                                <span class="channel-name" title="${escHtml(ch.name)}">${escHtml(ch.name)}</span>
+                                <span class="channel-speed">${hotelFormatSpeed(ch.speed, ch.speed_ms)}</span>
+                                <span class="channel-url" title="${escHtml(ch.url)}">${escHtml(ch.url)}</span>
+                                <button class="btn-play" onclick="event.stopPropagation(); hotelPlayExternal('${escAttr(ch.name)}', '${escAttr(ch.url)}')">▶ 播放</button>
+                                <button class="btn-copy" onclick="event.stopPropagation(); hotelCopyText('${escAttr(ch.url)}')">复制</button>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        function hotelToggleServer(i) {
+            const el = document.getElementById('hotelServer' + i);
+            if (el) el.classList.toggle('open');
+        }
+
+        function hotelSortChannels(type) {
+            hotelCurrentSort = type;
+            document.querySelectorAll('#tabContentHotel .btn-sort').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('#tabContentHotel .btn-sort').forEach(b => {
+                if (b.textContent.includes(type === 'speed' ? '速度' : '名称')) b.classList.add('active');
+            });
+            const sorted = JSON.parse(JSON.stringify(hotelScanResults));
+            for (const r of sorted) {
+                if (type === 'speed') {
+                    r.channels.sort((a, b) => (a.speed_ms || 9999) - (b.speed_ms || 9999));
+                } else {
+                    r.channels.sort((a, b) => a.name.localeCompare(b.name, 'zh-CN'));
+                }
+            }
+            const orig = hotelScanResults;
+            hotelScanResults = sorted;
+            hotelRenderResults({
+                results: sorted,
+                count: sorted.length,
+                total_channels: sorted.reduce((s, r) => s + r.channel_count, 0)
+            });
+            hotelScanResults = orig;
+        }
+
+        function hotelGetAllChannels() {
+            let lines = [];
+            for (const r of hotelScanResults) {
+                for (const ch of r.channels) {
+                    lines.push({ name: ch.name, url: ch.url, speed: ch.speed || 0 });
+                }
+            }
+            return lines;
+        }
+
+        function hotelExportM3U() {
+            const channels = hotelGetAllChannels();
+            if (channels.length === 0) { showToast('没有频道可导出', 'error'); return; }
+            let m3u = '#EXTM3U\n';
+            for (const ch of channels) {
+                const speedInfo = ch.speed > 0 ? ` [${ch.speed.toFixed(0)}KB/s]` : '';
+                m3u += `#EXTINF:-1,${ch.name}${speedInfo}\n${ch.url}\n`;
+            }
+            downloadFile('iptv_channels.m3u', m3u);
+            showToast('M3U 文件已下载', 'success');
+        }
+
+        function hotelExportTXT() {
+            const channels = hotelGetAllChannels();
+            if (channels.length === 0) { showToast('没有频道可导出', 'error'); return; }
+            let txt = '';
+            for (const ch of channels) { txt += `${ch.name},${ch.url}\n`; }
+            downloadFile('iptv_channels.txt', txt);
+            showToast('TXT 文件已下载', 'success');
+        }
+
+        function hotelCopyAll() {
+            const channels = hotelGetAllChannels();
+            if (channels.length === 0) { showToast('没有频道可复制', 'error'); return; }
+            let text = '';
+            for (const ch of channels) { text += `${ch.name},${ch.url}\n`; }
+            copyTextDirect(text);
+            showToast(`已复制 ${channels.length} 个频道`, 'success');
+        }
+
+        async function hotelCopyText(text) {
+            await copyTextDirect(text);
+            showToast('已复制', 'info');
+        }
+
+        function hotelPlayExternal(name, url) {
+            const iframe = document.createElement('iframe');
+            iframe.style.display = 'none';
+            document.body.appendChild(iframe);
+            iframe.src = 'potplayer://' + url;
+            showToast('正在调用 PotPlayer 播放: ' + name, 'info');
+            setTimeout(() => { if (iframe.parentNode) iframe.parentNode.removeChild(iframe); }, 2000);
+        }
+
+        // ==================== 组播 IP 筛选 ====================
+        let mcValidIPs = [];
+        let mcLastResults = [];
+        let mcConfig = [];
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            try {
+                const resp = await fetch('/api/multicast/config');
+                const data = await resp.json();
+                if (data.code === 0) {
+                    mcConfig = data.data;
+                    mcBuildDropdown(mcConfig);
+                    if (mcConfig.length > 0) {
+                        const first = mcConfig[0];
+                        document.getElementById('mcMulticastInput').value = `${first.name} | ${first.addr}`;
+                    }
+                }
+            } catch (e) {
+                console.error('加载组播配置失败:', e);
+            }
+
+            // 组播组合框交互
+            const mcInput = document.getElementById('mcMulticastInput');
+            const mcCombo = document.getElementById('mcCombo');
+
+            mcInput.addEventListener('focus', () => mcOpenDropdown());
+            mcInput.addEventListener('input', () => {
+                const val = mcInput.value.toLowerCase();
+                const options = document.querySelectorAll('#mcDropdown .combo-option:not(.combo-option-custom)');
+                options.forEach(opt => {
+                    opt.style.display = opt.textContent.toLowerCase().includes(val) ? '' : 'none';
+                });
+                document.querySelector('#mcDropdown .combo-option-custom').style.display = '';
+                mcOpenDropdown();
+            });
+            document.addEventListener('click', (e) => {
+                if (!mcCombo.contains(e.target)) mcCloseDropdown();
+            });
+        });
+
+        function mcBuildDropdown(items) {
+            const dropdown = document.getElementById('mcDropdown');
+            dropdown.innerHTML = '';
+            items.forEach((item) => {
+                const div = document.createElement('div');
+                div.className = 'combo-option';
+                div.textContent = `${item.name} | ${item.addr}`;
+                div.dataset.addr = item.addr;
+                div.addEventListener('mousedown', (e) => {
+                    e.preventDefault();
+                    mcSelectOption(div);
+                });
+                dropdown.appendChild(div);
+            });
+            const customDiv = document.createElement('div');
+            customDiv.className = 'combo-option combo-option-custom';
+            customDiv.textContent = '✏ 手动输入自定义地址...';
+            customDiv.addEventListener('mousedown', (e) => {
+                e.preventDefault();
+                document.getElementById('mcMulticastInput').value = '';
+                document.getElementById('mcMulticastInput').focus();
+                mcCloseDropdown();
+            });
+            dropdown.appendChild(customDiv);
+        }
+
+        function mcSelectOption(optionEl) {
+            document.getElementById('mcMulticastInput').value = optionEl.textContent;
+            mcCloseDropdown();
+        }
+
+        function mcOpenDropdown() { document.getElementById('mcDropdown').classList.add('show'); }
+        function mcCloseDropdown() { document.getElementById('mcDropdown').classList.remove('show'); }
+
+        function mcGetMulticastAddr() {
+            const val = document.getElementById('mcMulticastInput').value.trim();
+            const idx = val.lastIndexOf(' | ');
+            if (idx !== -1) return val.substring(idx + 3).trim();
+            return val;
+        }
+
+        async function mcStep1Parse() {
+            const text = document.getElementById('mcInput').value;
+            if (!text.trim()) { showToast('请先粘贴IP:端口列表', 'error'); return; }
+
+            const stats = document.getElementById('mcParseStats');
+            stats.innerHTML = '<span class="mc-tag mc-tag-info" style="padding:8px 16px;">🔗 正在检测IP连通性，请稍候...</span>';
+
+            const parseBtn = document.getElementById('btnMcParse');
+            parseBtn.disabled = true;
+            parseBtn.textContent = '⏳ 检测中...';
+
+            try {
+                const resp = await fetch('/api/multicast/parse', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text })
+                });
+                const data = await resp.json();
+                if (data.code !== 0) { showToast(data.msg, 'error'); return; }
+
+                mcValidIPs = data.data.valid;
+                let statsHTML = `
+                    <span class="mc-tag mc-tag-info">总计提取: ${data.data.total}</span>
+                    <span class="mc-tag mc-tag-ok">格式有效: ${data.data.valid_count}</span>
+                `;
+                if (data.data.invalid_count > 0) {
+                    statsHTML += `<span class="mc-tag mc-tag-fail">格式无效(已剔除): ${data.data.invalid_count}</span>`;
+                }
+                if (data.data.unreachable_count > 0) {
+                    statsHTML += `<span class="mc-tag mc-tag-fail">连不通(已剔除): ${data.data.unreachable_count}</span>`;
+                }
+                statsHTML += `<span class="mc-tag mc-tag-ok">✅ 连通可用: ${data.data.reachable_count}</span>`;
+                stats.innerHTML = statsHTML;
+
+                document.getElementById('btnMcCheck').disabled = mcValidIPs.length === 0;
+                if (mcValidIPs.length === 0) {
+                    showToast('未找到可连通的IP:端口', 'warning');
+                }
+            } finally {
+                parseBtn.disabled = false;
+                parseBtn.textContent = '🔍 解析并筛选有效IP';
+            }
+        }
+
+        async function mcStep2Check() {
+            const multicastAddr = mcGetMulticastAddr();
+            const protocol = document.getElementById('mcProtocol').value;
+            const timeout = parseInt(document.getElementById('mcTimeout').value);
+
+            if (!multicastAddr) { showToast('请选择或输入组播地址', 'error'); return; }
+            if (mcValidIPs.length === 0) { showToast('请先解析有效IP', 'error'); return; }
+
+            document.getElementById('mcLoading').classList.add('show');
+            document.getElementById('mcResultCard').style.display = 'none';
+            document.getElementById('btnMcCheck').disabled = true;
+            document.getElementById('mcCheckStats').innerHTML = '';
+
+            const BATCH_SIZE = 15;
+            const total = mcValidIPs.length;
+            let allResults = [];
+            let completed = 0;
+            mcUpdateProgress(0, total);
+
+            try {
+                for (let i = 0; i < mcValidIPs.length; i += BATCH_SIZE) {
+                    const batch = mcValidIPs.slice(i, i + BATCH_SIZE);
+                    const resp = await fetch('/api/multicast/check', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            ip_ports: batch,
+                            multicast_addr: multicastAddr,
+                            protocol,
+                            timeout,
+                            concurrency: 20
+                        })
+                    });
+                    const data = await resp.json();
+                    if (data.code !== 0) { showToast(data.msg, 'error'); return; }
+                    allResults = allResults.concat(data.data.results);
+                    completed += batch.length;
+                    mcUpdateProgress(completed, total);
+                }
+
+                const okResults = allResults.filter(r => r.status === 'ok');
+                okResults.sort((a, b) => a.speed_ms - b.speed_ms);
+                const failCount = total - okResults.length;
+                mcLastResults = okResults;
+                mcRenderResults({ results: okResults });
+                document.getElementById('mcResultCard').style.display = 'block';
+                document.getElementById('mcExportBtns').style.display = 'flex';
+
+                document.getElementById('mcCheckStats').innerHTML = `
+                    <span class="mc-tag mc-tag-ok">可用: ${okResults.length}</span>
+                    ${failCount > 0 ? `<span class="mc-tag mc-tag-fail">不可用: ${failCount}</span>` : ''}
+                    <span style="color:var(--text-muted);font-size:13px;">${failCount > 0 ? `（已自动剔除 ${failCount} 个无效源）` : ''}</span>
+                `;
+            } catch (e) {
+                showToast('验证出错: ' + e.message, 'error');
+            } finally {
+                document.getElementById('mcLoading').classList.remove('show');
+                document.getElementById('btnMcCheck').disabled = false;
+            }
+        }
+
+        function mcUpdateProgress(done, total) {
+            const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+            document.getElementById('mcProgressBar').style.width = pct + '%';
+            document.getElementById('mcProgressText').textContent = done + ' / ' + total + '  (' + pct + '%)';
+        }
+
+        function mcRenderResults(data) {
+            const tbody = document.getElementById('mcResultBody');
+            const emptyTip = document.getElementById('mcEmptyTip');
+            if (data.results.length === 0) {
+                tbody.innerHTML = '';
+                emptyTip.style.display = 'block';
+                return;
+            }
+            emptyTip.style.display = 'none';
+            tbody.innerHTML = data.results.map((r, i) => {
+                let speedClass = '';
+                if (r.speed_ms < 200) speedClass = 'speed-fast';
+                else if (r.speed_ms < 500) speedClass = 'speed-mid';
+                else speedClass = 'speed-slow';
+                const safeUrl = r.url.replace(/"/g, '&quot;');
+                return `
+                    <tr>
+                        <td>${i + 1}</td>
+                        <td><strong>${r.ip_port}</strong></td>
+                        <td><span class="mc-tag mc-tag-ok">✓ 可用</span></td>
+                        <td class="${speedClass}">${r.speed_ms} ms</td>
+                        <td class="url-cell" title="${r.url}">${r.url}</td>
+                        <td>
+                            <button class="mc-btn-play" onclick='mcPlayUrl("${safeUrl}")'>▶ 播放</button>
+                            <button class="mc-btn-copy" onclick="mcCopyUrl(this, '${safeUrl}')">📋 复制</button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function mcExportFile(format) {
+            if (mcLastResults.length === 0) { showToast('没有可导出的数据', 'error'); return; }
+            const now = new Date();
+            const ts = now.getFullYear()
+                + String(now.getMonth() + 1).padStart(2, '0')
+                + String(now.getDate()).padStart(2, '0') + '_'
+                + String(now.getHours()).padStart(2, '0')
+                + String(now.getMinutes()).padStart(2, '0')
+                + String(now.getSeconds()).padStart(2, '0');
+
+            let content, filename;
+            if (format === 'm3u') {
+                content = '#EXTM3U\n';
+                mcLastResults.forEach((r) => {
+                    content += `#EXTINF:-1,${r.ip_port} (${r.speed_ms}ms)\n`;
+                    content += r.url + '\n';
+                });
+                filename = `multicast_${ts}.m3u`;
+            } else {
+                content = mcLastResults.map(r => r.url).join('\n');
+                filename = `multicast_${ts}.txt`;
+            }
+            downloadFile(filename, content);
+            showToast(`${format.toUpperCase()} 文件已下载`, 'success');
+        }
+
+        async function mcCopyUrl(btn, url) {
+            await copyTextDirect(url);
+            btn.textContent = '✅ 已复制';
+            btn.classList.add('copied');
+            setTimeout(() => {
+                btn.textContent = '📋 复制';
+                btn.classList.remove('copied');
+            }, 1500);
+        }
+
+        function mcPlayUrl(url) {
+            const potUrl = 'potplayer://' + url;
+            const iframe = document.createElement('iframe');
+            iframe.style.display = 'none';
+            iframe.src = potUrl;
+            document.body.appendChild(iframe);
+            copyTextDirect(url);
+            showToast('▶ 正在打开播放器... 播放地址已复制到剪贴板', 'info');
+            setTimeout(() => { if (iframe.parentNode) iframe.parentNode.removeChild(iframe); }, 2000);
+        }
+
+        // ==================== IPTV 频道查询 ====================
+        const IPTV_HISTORY_KEY = 'iptv_query_history';
+        const IPTV_PLAYER_KEY = 'iptv_player_pref';
+        let iptvCurrentData = null;
+        let iptvCurrentServer = '';
+        let iptvCurrentFilter = 'all';
+
+        (function() {
+            document.getElementById('iptvPlayerSelect').value = iptvGetPlayerPref();
+            iptvRenderHistory();
+        })();
+
+        function iptvGetHistory() {
+            try { return JSON.parse(localStorage.getItem(IPTV_HISTORY_KEY) || '[]'); }
+            catch { return []; }
+        }
+        function iptvSaveHistory(server) {
+            let list = iptvGetHistory().filter(s => s !== server);
+            list.unshift(server);
+            if (list.length > 10) list = list.slice(0, 10);
+            localStorage.setItem(IPTV_HISTORY_KEY, JSON.stringify(list));
+            iptvRenderHistory();
+        }
+        function iptvRemoveHistory(server) {
+            let list = iptvGetHistory().filter(s => s !== server);
+            localStorage.setItem(IPTV_HISTORY_KEY, JSON.stringify(list));
+            iptvRenderHistory();
+        }
+        function iptvRenderHistory() {
+            const list = iptvGetHistory();
+            const el = document.getElementById('iptvHistoryTags');
+            if (!list.length) { el.innerHTML = ''; return; }
+            el.innerHTML = list.map(s =>
+                `<span class="history-tag" onclick="iptvUseHistory('${escHtml(s)}')">
+                    🕐 ${escHtml(s)}
+                    <span class="remove" onclick="event.stopPropagation();iptvRemoveHistory('${escHtml(s)}')">✕</span>
+                </span>`
+            ).join('');
+        }
+        function iptvUseHistory(server) {
+            document.getElementById('iptvServerInput').value = server;
+            iptvFetch();
+        }
+
+        function iptvGetPlayerPref() {
+            try { return localStorage.getItem(IPTV_PLAYER_KEY) || 'potplayer'; }
+            catch { return 'potplayer'; }
+        }
+        function iptvSavePlayerPref() {
+            localStorage.setItem(IPTV_PLAYER_KEY, document.getElementById('iptvPlayerSelect').value);
+        }
+
+        function iptvGetPlayerCommand(player, url) {
+            switch (player) {
+                case 'potplayer': return 'potplayer://' + url;
+                case 'vlc': return 'vlc://' + url;
+                case 'mpv': return 'mpv://' + url;
+                case 'iina': return 'iina://open?url=' + encodeURIComponent(url);
+                default: return 'potplayer://' + url;
+            }
+        }
+
+        async function iptvFetch() {
+            const input = document.getElementById('iptvServerInput');
+            const raw = input.value.trim();
+            if (!raw) { showToast('请输入服务器地址', 'error'); return; }
+
+            iptvCurrentServer = raw.replace(/^https?:\/\//i, '').replace(/\/+$/, '');
+            const apiUrl = '/api/iptv/query?server=' + encodeURIComponent(iptvCurrentServer);
+
+            const btn = document.getElementById('iptvFetchBtn');
+            btn.disabled = true;
+            btn.innerHTML = '⏳ 查询中...';
+            document.getElementById('iptvStatusBadge').textContent = '⏳ 正在请求数据...';
+            document.getElementById('iptvStatusBadge').style.color = 'var(--text-muted)';
+            document.getElementById('iptvChannelCount').textContent = '';
+            document.getElementById('iptvChannelGrid').innerHTML =
+                '<div class="empty-state"><div class="icon-lg">⏳</div><p>正在连接 ' + escHtml(iptvCurrentServer) + '</p></div>';
+            document.getElementById('iptvQuickActions').style.display = 'none';
+            document.getElementById('iptvFilterTabs').style.display = 'none';
+
+            try {
+                const resp = await fetch(apiUrl);
+                const json = await resp.json();
+                if (!resp.ok || json.code !== 0) {
+                    throw new Error(json.msg || ('HTTP ' + resp.status));
+                }
+                iptvCurrentData = json;
+                iptvSaveHistory(iptvCurrentServer);
+                iptvRenderChannels(json);
+                document.getElementById('iptvStatusBadge').textContent = '✅ 请求成功';
+                document.getElementById('iptvStatusBadge').style.color = 'var(--success)';
+                document.getElementById('iptvChannelCount').innerHTML = '共 <strong>' + json.count + '</strong> 个频道';
+                document.getElementById('iptvQuickActions').style.display = 'flex';
+            } catch (err) {
+                console.error(err);
+                iptvCurrentData = null;
+                document.getElementById('iptvStatusBadge').textContent = '❌ 请求失败';
+                document.getElementById('iptvStatusBadge').style.color = 'var(--danger)';
+                document.getElementById('iptvChannelCount').textContent = '';
+                document.getElementById('iptvChannelGrid').innerHTML =
+                    '<div class="empty-state"><div class="icon-lg">❌</div><p>' + escHtml(err.message) + '</p></div>';
+                showToast('请求失败: ' + err.message, 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '🔍 查询';
+            }
+        }
+
+        function iptvRenderChannels(json) {
+            const data = json.data;
+            const typeMap = {};
+            data.forEach(ch => {
+                const key = ch.typename || '其他';
+                if (!typeMap[key]) typeMap[key] = { name: key, count: 0 };
+                typeMap[key].count++;
+            });
+
+            const filterEl = document.getElementById('iptvFilterTabs');
+            filterEl.style.display = 'flex';
+            const types = Object.values(typeMap);
+            let tabsHtml = '<button class="filter-tab active" onclick="iptvSetFilter(\'all\')">全部<span class="count">' + json.count + '</span></button>';
+            types.forEach(t => {
+                tabsHtml += '<button class="filter-tab" onclick="iptvSetFilter(\'' + escHtml(t.name) + '\')">' + escHtml(t.name) + '<span class="count">' + t.count + '</span></button>';
+            });
+            filterEl.innerHTML = tabsHtml;
+            iptvCurrentFilter = 'all';
+            iptvRenderGrid(data);
+        }
+
+        function iptvSetFilter(filter) {
+            iptvCurrentFilter = filter;
+            document.querySelectorAll('#iptvFilterTabs .filter-tab').forEach(t => t.classList.remove('active'));
+            const tabs = document.querySelectorAll('#iptvFilterTabs .filter-tab');
+            tabs.forEach(t => {
+                if (t.textContent.replace(/\d+/, '').trim() === filter || (filter === 'all' && t.textContent.startsWith('全部')))
+                    t.classList.add('active');
+            });
+            iptvRenderGrid(iptvCurrentData.data);
+        }
+
+        function iptvRenderGrid(data) {
+            const filtered = iptvCurrentFilter === 'all' ? data : data.filter(ch => (ch.typename || '其他') === iptvCurrentFilter);
+            const grid = document.getElementById('iptvChannelGrid');
+            if (!filtered.length) {
+                grid.innerHTML = '<div class="empty-state"><div class="icon-lg">📭</div><p>没有匹配的频道</p></div>';
+                return;
+            }
+            grid.innerHTML = filtered.map(ch => {
+                const fullUrl = ch.url ? ('http://' + iptvCurrentServer + ch.url) : '';
+                return `
+                <div class="channel-card">
+                    <div class="ch-num">NO. ${ch.num}</div>
+                    <div class="ch-name" onclick="iptvCopyUrl('${escAttr(fullUrl)}', '${escAttr(ch.name)}')">${escHtml(ch.name)}</div>
+                    <span class="ch-type">${escHtml(ch.typename || '其他')}</span>
+                    <div class="ch-url">${escHtml(fullUrl)}</div>
+                    ${fullUrl ? `
+                    <div class="ch-actions">
+                        <button class="btn-play-sm" onclick="event.stopPropagation();iptvOpenInPlayer('${escAttr(fullUrl)}', '${escAttr(ch.name)}')">▶ 播放</button>
+                        <button class="btn-play-sm pp" onclick="event.stopPropagation();iptvOpenInPlayer('${escAttr(fullUrl)}', '${escAttr(ch.name)}', 'potplayer')">🍊 PP</button>
+                    </div>` : ''}
+                </div>`;
+            }).join('');
+        }
+
+        async function iptvCopyUrl(url, name) {
+            if (!url) { showToast('该频道无播放地址', 'error'); return; }
+            await copyTextDirect(url);
+            showToast('✅ 已复制「' + name + '」', 'success');
+        }
+
+        function iptvOpenInPlayer(url, name, forcePlayer) {
+            if (!url) { showToast('该频道无播放地址', 'error'); return; }
+            const player = forcePlayer || iptvGetPlayerPref();
+            const cmd = iptvGetPlayerCommand(player, url);
+            const a = document.createElement('a');
+            a.href = cmd;
+            a.style.display = 'none';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            const names = { potplayer: 'PotPlayer', vlc: 'VLC', mpv: 'MPV', iina: 'IINA' };
+            showToast('▶️ 正在用 ' + names[player] + ' 播放「' + name + '」', 'success');
+        }
+
+        function iptvOpenAll() {
+            if (!iptvCurrentData || !iptvCurrentData.data.length) { showToast('没有频道数据', 'error'); return; }
+            const player = iptvGetPlayerPref();
+            let m3u = '#EXTM3U\n#PLAYLIST: IPTV (' + iptvCurrentServer + ')\n';
+            iptvCurrentData.data.forEach(ch => {
+                const fullUrl = ch.url ? ('http://' + iptvCurrentServer + ch.url) : '';
+                if (fullUrl) {
+                    m3u += '#EXTINF:-1 tvg-id="' + ch.chid + '" group-title="' + (ch.typename || '') + '",' + ch.name + '\n';
+                    m3u += fullUrl + '\n';
+                }
+            });
+            downloadFile('iptv_playlist_' + iptvCurrentServer.replace(/[.:]/g, '_') + '.m3u', m3u);
+            showToast('📥 播放列表已下载', 'success');
+        }
+
+        function iptvExportM3U() {
+            if (!iptvCurrentData) return;
+            let m3u = '#EXTM3U\n#PLAYLIST: IPTV Channel List (' + iptvCurrentServer + ')\n';
+            iptvCurrentData.data.forEach(ch => {
+                const fullUrl = ch.url ? ('http://' + iptvCurrentServer + ch.url) : '';
+                m3u += '#EXTINF:-1 tvg-id="' + ch.chid + '" tvg-name="' + ch.name + '" group-title="' + (ch.typename || '') + '",' + ch.name + '\n';
+                m3u += fullUrl + '\n';
+            });
+            downloadFile('iptv_channels_' + iptvCurrentServer.replace(/[.:]/g, '_') + '.m3u', m3u);
+            showToast('M3U 文件已下载', 'success');
+        }
+
+        function iptvExportCSV() {
+            if (!iptvCurrentData) return;
+            let csv = '\uFEFF序号,频道名称,分类,频道ID,播放地址\n';
+            iptvCurrentData.data.forEach(ch => {
+                const fullUrl = ch.url ? ('http://' + iptvCurrentServer + ch.url) : '';
+                csv += ch.num + ',"' + ch.name + '","' + (ch.typename || '') + '",' + ch.chid + ',"' + fullUrl + '"\n';
+            });
+            downloadFile('iptv_channels_' + iptvCurrentServer.replace(/[.:]/g, '_') + '.csv', csv);
+            showToast('CSV 文件已下载', 'success');
+        }
+
+        async function iptvCopyJSON() {
+            if (!iptvCurrentData) return;
+            try {
+                await navigator.clipboard.writeText(JSON.stringify(iptvCurrentData, null, 2));
+                showToast('JSON 数据已复制到剪贴板', 'success');
+            } catch { showToast('复制失败', 'error'); }
+        }
+
+        // ==================== 代理IP检测 ====================
+        let proxyValidResults = [];
+        let proxyInvalidResults = [];
+        let proxyIsRunning = false;
+
+        (async () => {
+            try {
+                const resp = await fetch('/api/proxy/myip');
+                const data = await resp.json();
+                document.getElementById('proxyMyIp').textContent = data.ip;
+            } catch (e) {
+                document.getElementById('proxyMyIp').textContent = '未知';
+            }
+        })();
+
+        async function proxyStartCheck() {
+            if (proxyIsRunning) return;
+
+            const text = document.getElementById('proxyInput').value.trim();
+            if (!text) { showToast('请先输入代理IP', 'error'); return; }
+
+            const typeFilter = document.getElementById('proxyType').value;
+            const concurrency = parseInt(document.getElementById('proxyConcurrency').value) || 10;
+
+            proxyIsRunning = true;
+            proxyValidResults = [];
+            proxyInvalidResults = [];
+            const btn = document.getElementById('btnProxyStart');
+            btn.disabled = true;
+            btn.textContent = '⏳ 检测中...';
+
+            document.getElementById('proxyProgressSection').style.display = 'block';
+            document.getElementById('proxyProgressBar').style.width = '0%';
+            document.getElementById('proxyProgressText').textContent = '0 / 0';
+            document.getElementById('proxyProgressLog').innerHTML = '';
+            document.getElementById('proxyValidBody').innerHTML = '<tr><td colspan="8"><div class="empty-state"><div class="mc-spinner" style="width:24px;height:24px;border-width:2px;display:inline-block;"></div> 检测中...</div></td></tr>';
+            document.getElementById('proxyInvalidBody').innerHTML = '<tr><td colspan="6"><div class="empty-state"><div class="mc-spinner" style="width:24px;height:24px;border-width:2px;display:inline-block;"></div> 检测中...</div></td></tr>';
+            document.getElementById('proxyResultCard').style.display = 'block';
+            proxyUpdateStats(0, 0, 0);
+
+            try {
+                const resp = await fetch('/api/proxy/check', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ proxies: text, type: typeFilter, concurrency: concurrency }),
+                });
+                if (!resp.ok) {
+                    const errData = await resp.json();
+                    showToast('⚠️ ' + (errData.error || '请求失败'), 'error');
+                    proxyResetState();
+                    return;
+                }
+
+                const reader = resp.body.getReader();
+                const decoder = new TextDecoder();
+                let buffer = '';
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    buffer += decoder.decode(value, { stream: true });
+                    const lines = buffer.split('\n');
+                    buffer = lines.pop();
+                    for (const line of lines) {
+                        if (!line.startsWith('data: ')) continue;
+                        try {
+                            const data = JSON.parse(line.slice(6));
+                            if (data.done) {
+                                proxyValidResults = data.valid || [];
+                                proxyInvalidResults = data.invalid || [];
+                                proxyRenderResults();
+                                proxyUpdateStats(
+                                    data.stats.total,
+                                    data.stats.valid_count,
+                                    data.stats.invalid_count,
+                                    data.stats.avg_latency
+                                );
+                                showToast(`✅ 检测完成！有效 ${data.stats.valid_count} / 无效 ${data.stats.invalid_count}`, 'success');
+                                proxyResetState();
+                            } else if (data.progress) {
+                                const { completed, total } = data.progress;
+                                const pct = Math.round((completed / total) * 100);
+                                document.getElementById('proxyProgressBar').style.width = pct + '%';
+                                document.getElementById('proxyProgressText').textContent = `${completed} / ${total}`;
+                                if (data.result) proxyAddLogLine(data.result);
+                            }
+                        } catch (e) { console.error('SSE parse error:', e); }
+                    }
+                }
+            } catch (e) {
+                showToast('❌ 网络错误: ' + e.message, 'error');
+                proxyResetState();
+            }
+        }
+
+        function proxyResetState() {
+            proxyIsRunning = false;
+            const btn = document.getElementById('btnProxyStart');
+            btn.disabled = false;
+            btn.textContent = '▶️ 开始检测';
+        }
+
+        function proxyAddLogLine(result) {
+            const div = document.createElement('div');
+            const loc = result.location ? ' 位置:' + result.location : '';
+            if (result.valid) {
+                div.innerHTML = `<span style="color:var(--success);">✅ ${escHtml(result.raw)}</span> — ${result.latency}ms → ${escHtml(result.exit_ip || '未知')}${escHtml(loc)}`;
+            } else {
+                div.innerHTML = `<span style="color:var(--danger);">❌ ${escHtml(result.raw)}</span> — ${escHtml(result.error || '失败')}`;
+            }
+            const logEl = document.getElementById('proxyProgressLog');
+            logEl.appendChild(div);
+            logEl.scrollTop = logEl.scrollHeight;
+        }
+
+        function proxyRenderResults() {
+            const validBody = document.getElementById('proxyValidBody');
+            const invalidBody = document.getElementById('proxyInvalidBody');
+
+            if (proxyValidResults.length === 0) {
+                validBody.innerHTML = '<tr><td colspan="8"><div class="empty-state">暂无有效代理</div></td></tr>';
+            } else {
+                validBody.innerHTML = proxyValidResults.map((r, i) => `
+                    <tr>
+                        <td>${i + 1}</td>
+                        <td><strong>${escHtml(r.host)}</strong></td>
+                        <td>${r.port}</td>
+                        <td><span class="mc-tag mc-tag-info">${(r.type || 'http').toUpperCase()}</span></td>
+                        <td>${r.latency}ms</td>
+                        <td>${escHtml(r.exit_ip || '—')}</td>
+                        <td style="color:#6ee7b7;max-width:260px;" title="${escHtml(r.location || '')}">${escHtml(r.location || '未知')}</td>
+                        <td><span class="mc-tag mc-tag-ok">✓ 有效</span></td>
+                    </tr>
+                `).join('');
+            }
+            document.getElementById('proxyValidCount').textContent = `(${proxyValidResults.length}个)`;
+
+            if (proxyInvalidResults.length === 0) {
+                invalidBody.innerHTML = '<tr><td colspan="6"><div class="empty-state">暂无无效代理</div></td></tr>';
+            } else {
+                invalidBody.innerHTML = proxyInvalidResults.map((r, i) => `
+                    <tr>
+                        <td>${i + 1}</td>
+                        <td><strong>${escHtml(r.host)}</strong></td>
+                        <td>${r.port}</td>
+                        <td><span class="mc-tag mc-tag-info">${(r.type || 'http').toUpperCase()}</span></td>
+                        <td style="color:var(--danger);">${escHtml(r.error || '未知错误')}</td>
+                        <td><span class="mc-tag mc-tag-fail">✗ 无效</span></td>
+                    </tr>
+                `).join('');
+            }
+            document.getElementById('proxyInvalidCount').textContent = `(${proxyInvalidResults.length}个)`;
+        }
+
+        function proxyUpdateStats(total, valid, invalid, avgLatency) {
+            document.getElementById('proxyStatTotal').textContent = total;
+            document.getElementById('proxyStatValid').textContent = valid;
+            document.getElementById('proxyStatInvalid').textContent = invalid;
+            document.getElementById('proxyStatSpeed').textContent = (avgLatency || 0) + 'ms';
+        }
+
+        function proxyCopyValid() {
+            if (proxyValidResults.length === 0) {
+                showToast('⚠️ 没有有效代理可复制', 'error');
+                return;
+            }
+            const detailed = document.getElementById('proxyCopyDetailMode').checked;
+            const text = proxyValidResults.map(r => {
+                if (detailed) {
+                    const exitIp = r.exit_ip || '—';
+                    const location = r.location || '未知';
+                    return `${r.host}:${r.port} - 出口IP：${exitIp} 位置：${location}`;
+                }
+                return `${r.host}:${r.port}`;
+            }).join('\n');
+            copyTextDirect(text);
+            showToast(`✅ 已复制 ${proxyValidResults.length} 个有效代理`, 'success');
+        }
+
+        function proxyLoadDemo() {
+            const demos = [
+                '142.250.80.46:80',
+                '142.251.42.14:443',
+                '151.101.1.140:443',
+                '157.240.3.35:443',
+                '31.13.72.36:443',
+                '8.8.8.8:53',
+                '1.1.1.1:443',
+                '208.67.222.222:443',
+                '172.217.24.46:80',
+                '216.58.200.46:443',
+                '185.199.108.153:443',
+                '104.16.132.229:443',
+                '34.120.208.123:443',
+                '140.82.121.3:443',
+            ];
+            document.getElementById('proxyInput').value = demos.join('\n');
+            showToast('📥 已加载 ' + demos.length + ' 条示例代理', 'info');
+        }
+
+        // 代理检测快捷键 Ctrl+Enter
+        document.getElementById('proxyInput').addEventListener('keydown', (e) => {
+            if (e.ctrlKey && e.key === 'Enter') proxyStartCheck();
+        });
+    </script>
+</body>
+</html>

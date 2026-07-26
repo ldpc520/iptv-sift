@@ -1,0 +1,71 @@
+# ============================================================
+# 自动构建并推送 Docker 镜像到 Docker Hub
+# 触发条件：
+#   1) 推送到 main 分支
+#   2) 打 v* 标签（如 v1.0.0）
+#   3) 手动在 Actions 页面点击 Run workflow
+#
+# 需要先在仓库 Settings → Secrets → Actions 中配置两个密钥：
+#   DOCKERHUB_USERNAME  = 你的 Docker Hub 用户名（ken01982）
+#   DOCKERHUB_TOKEN     = Docker Hub 访问令牌（不是登录密码，在 hub.docker.com → Account Settings → Security → Access Tokens 生成）
+# ============================================================
+
+name: 构建并推送 Docker 镜像
+
+on:
+  push:
+    branches: ["main"]
+    tags: ["v*"]
+  workflow_dispatch:
+
+# 最小权限原则
+permissions:
+  contents: read
+
+env:
+  # 推送目标镜像：<用户名>/<镜像名>
+  IMAGE_NAME: ken01982/iptv-sift
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 设置 QEMU（多架构构建支持）
+        uses: docker/setup-qemu-action@v3
+
+      - name: 设置 Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: 登录 Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: 提取镜像标签元数据
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE_NAME }}
+          tags: |
+            # main 分支 → latest
+            type=raw,value=latest,enable={{is_default_branch}}
+            # 打 tag 时 → 语义版本（v1.2.3 → 1.2.3）
+            type=semver,pattern={{version}}
+            # 每次构建 → 短 commit sha
+            type=sha,prefix=sha-,format=short
+
+      - name: 构建并推送镜像
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          # 仅构建 amd64（你的服务器为 x86）。如需 ARM（树莓派/ARM 软路由），
+          # 改为：platforms: linux/amd64,linux/arm64
+          platforms: linux/amd64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
