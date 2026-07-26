@@ -29,9 +29,16 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# 拷贝应用代码：后端、默认配置、前端模板
-COPY app.py config.ini ./
+# 拷贝应用代码：后端、前端模板
+COPY app.py ./
 COPY templates ./templates
+
+# 镜像内置的默认配置（容器启动时由 entrypoint 复制到 /app/config.ini）
+COPY config.ini /app/config.ini.default
+
+# 启动脚本：首次运行时把默认 config.ini 生成到宿主机（与 docker-compose.yml 同目录）
+COPY docker-entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
 # 可选：运行时数据目录（如后续版本写入结果文件，可挂载卷持久化）
 VOLUME ["/app/data"]
@@ -39,5 +46,6 @@ VOLUME ["/app/data"]
 # Flask 监听端口
 EXPOSE 6604
 
-# 启动应用（host 0.0.0.0 已在 app.py 内设置，端口 6604）
+# entrypoint 负责生成/确保 config.ini 存在，再启动应用
+ENTRYPOINT ["docker-entrypoint.sh"]
 CMD ["python", "app.py"]

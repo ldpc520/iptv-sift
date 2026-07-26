@@ -1,0 +1,26 @@
+# ============================================================
+# iptv-sift - docker compose
+# 用法：
+#   构建并启动：docker compose up -d --build
+#   仅启动（已有镜像）：docker compose up -d
+#   停止：docker compose down
+#
+# 启动后，宿主机当前目录会多出两个文件/目录：
+#   ./config.ini   ← 默认配置（容器首次启动自动生成，直接在旁边编辑即可）
+#   ./data/        ← 运行时数据目录（持久化）
+# 修改 config.ini 后执行：docker compose restart 生效
+# ============================================================
+
+services:
+  iptv-sift:
+    build: .
+    image: ken01982/iptv-sift:latest
+    container_name: iptv-sift
+    ports:
+      - "6604:6604"
+    volumes:
+      # 配置文件：与 docker-compose.yml 同目录，方便查找修改
+      - ./config.ini:/app/config.ini
+      # 运行时数据（可选持久化）
+      - ./data:/app/data
+    restart: unless-stopped

@@ -1,0 +1,2 @@
+# 确保 shell 脚本在检出时统一使用 LF 行尾（否则 Linux 容器内 shebang 会失效）
+docker-entrypoint.sh text eol=lf

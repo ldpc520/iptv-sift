@@ -22,7 +22,7 @@ Web 服务监听 `0.0.0.0:6604`。
 ├── .github/workflows/docker-image.yml   # GitHub Actions 自动构建推送
 ├── requirements.txt
 ├── app.py
-├── config.ini                           # 默认组播配置（运行时只读）
+├── config.ini                           # 默认组播配置（支持 Web 在线编辑）
 ├── templates/
 │   └── index.html
 └── README.md
@@ -45,15 +45,34 @@ docker run -d --name iptv-sift -p 6604:6604 ken01982/iptv-sift
 
 ### 自定义组播列表 / 持久化数据
 
-`config.ini` 在镜像内是只读默认配置。如需自定义，把你的 `config.ini` 挂进去即可（应用检测到文件存在就不会再自动生成）：
+`config.ini` 默认烤在镜像里。有两种方式修改：
+
+#### 方式 1：Web 在线编辑（推荐）
+
+进入「组播 IP 筛选 → 第二步：选择组播ID与协议」，点击右侧 **⚙️ 编辑 config.ini**。输入管理密码（默认 `123456`）后即可加载、修改、保存配置。
+
+密码可通过环境变量修改（见下文「管理密码」）。
+
+#### 方式 2：挂载自定义 config.ini
+
+把你的 `config.ini` 挂进去即可（应用检测到文件存在就不会再自动生成）：
 
 ```bash
 docker run -d --name iptv-sift \
   -p 6604:6604 \
+  -e SIFT_ADMIN_PASSWORD=你的密码 \
   -v /your/path/config.ini:/app/config.ini:ro \
   -v iptv-sift-data:/app/data \
   ken01982/iptv-sift
 ```
+
+### 管理密码（在线编辑 config.ini 用）
+
+| 环境变量 | 默认值 | 说明 |
+|----------|--------|------|
+| `SIFT_ADMIN_PASSWORD` | `123456` | 访问「编辑 config.ini」功能时的验证密码 |
+
+建议在生产环境通过 `-e SIFT_ADMIN_PASSWORD=强密码` 修改默认密码。
 
 ---
 

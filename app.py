@@ -42,6 +42,9 @@ app = Flask(__name__)
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 CONFIG_FILE = os.path.join(BASE_DIR, 'config.ini')
 
+# 管理密码：用于在线编辑 config.ini，默认 123456，可通过环境变量 SIFT_ADMIN_PASSWORD 修改
+ADMIN_PASSWORD = os.environ.get('SIFT_ADMIN_PASSWORD', '123456')
+
 # ==================== 全局进度 ====================
 
 progress_lock = threading.Lock()
@@ -1470,6 +1473,41 @@ def api_proxy_myip():
             return jsonify({'ip': data.get('origin', '未知')})
         except Exception:
             return jsonify({'ip': '无法获取'})
+
+
+# ==================== 管理接口：在线编辑 config.ini ====================
+
+@app.route('/api/admin/config', methods=['GET'])
+def api_admin_config_get():
+    """读取 config.ini（需要管理密码）"""
+    password = request.headers.get('X-Admin-Password', '')
+    if password != ADMIN_PASSWORD:
+        return jsonify({'success': False, 'error': '密码错误'}), 401
+    try:
+        with open(CONFIG_FILE, 'r', encoding='utf-8') as f:
+            content = f.read()
+        return jsonify({'success': True, 'content': content})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/admin/config', methods=['POST'])
+def api_admin_config_save():
+    """保存 config.ini（需要管理密码）"""
+    password = request.headers.get('X-Admin-Password', '')
+    if password != ADMIN_PASSWORD:
+        return jsonify({'success': False, 'error': '密码错误'}), 401
+    try:
+        data = request.get_json(force=True) or {}
+        content = data.get('content', '')
+        # 简单校验：必须有 [multicast] 节，避免用户误清空
+        if '[multicast]' not in content:
+            return jsonify({'success': False, 'error': '配置缺少 [multicast] 节'}), 400
+        with open(CONFIG_FILE, 'w', encoding='utf-8') as f:
+            f.write(content)
+        return jsonify({'success': True, 'message': '配置已保存，刷新页面后下拉框将使用新配置'})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 
 # ==================== 启动 ====================

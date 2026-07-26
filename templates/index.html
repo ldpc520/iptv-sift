@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>组播&酒店IP有效性筛选</title>
+    <title>测绘空间 IP 筛选工具合集</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -87,70 +87,6 @@
         }
         .header-link .link-icon {
             font-size: 1.1rem;
-        }
-
-        /* Header Dropdown */
-        .header-dropdown {
-            position: relative;
-            flex-shrink: 0;
-            margin-top: 4px;
-        }
-        .header-drop-btn {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            padding: 8px 16px;
-            background: rgba(99, 102, 241, 0.1);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            color: var(--text-muted);
-            font-size: 0.85rem;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.25s;
-            white-space: nowrap;
-            font-family: inherit;
-        }
-        .header-drop-btn:hover {
-            color: #818cf8;
-            border-color: var(--primary);
-            background: rgba(99, 102, 241, 0.15);
-            box-shadow: 0 2px 8px rgba(99, 102, 241, 0.2);
-        }
-        .header-drop-btn .drop-arrow {
-            font-size: 0.75rem;
-            transition: transform 0.2s;
-        }
-        .header-drop-menu {
-            display: none;
-            position: absolute;
-            top: calc(100% + 6px);
-            right: 0;
-            min-width: 200px;
-            background: var(--card-bg);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            padding: 6px;
-            z-index: 100;
-            box-shadow: 0 8px 24px rgba(0,0,0,0.35);
-        }
-        .header-drop-menu.show {
-            display: block;
-        }
-        .header-drop-menu a {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 10px 12px;
-            color: var(--text-primary);
-            text-decoration: none;
-            font-size: 0.85rem;
-            border-radius: 6px;
-            transition: background 0.15s, color 0.15s;
-        }
-        .header-drop-menu a:hover {
-            background: rgba(99, 102, 241, 0.12);
-            color: #818cf8;
         }
 
         /* Tab Navigation */
@@ -902,7 +838,100 @@
         }
         .player-selector select:focus { border-color:var(--primary); }
 
+        /* 管理：编辑 config.ini 弹窗 */
+        .config-edit-btn {
+            padding: 8px 14px;
+            border: none;
+            border-radius: var(--radius-sm);
+            background: var(--warning);
+            color: #000;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            transition: filter 0.2s, transform 0.2s;
+            white-space: nowrap;
+        }
+        .config-edit-btn:hover { filter: brightness(1.1); transform: translateY(-1px); }
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.7);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 20px;
+        }
+        .modal-overlay.show { display: flex; }
+        .modal-box {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            width: 100%;
+            max-width: 720px;
+            max-height: 90vh;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+        }
+        .modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border);
+        }
+        .modal-header h3 { font-size: 18px; }
+        .modal-close {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            font-size: 22px;
+            cursor: pointer;
+            line-height: 1;
+        }
+        .modal-close:hover { color: var(--text); }
+        .modal-body {
+            padding: 16px 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            overflow: auto;
+        }
+        .modal-body label { font-size: 13px; color: var(--text-muted); font-weight: bold; }
+        .modal-body input[type="password"],
+        .modal-body textarea {
+            width: 100%;
+            padding: 10px 12px;
+            border: 2px solid var(--border);
+            border-radius: var(--radius-sm);
+            background: var(--bg-input);
+            color: var(--text);
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            font-size: 13px;
+            outline: none;
+        }
+        .modal-body input[type="password"]:focus,
+        .modal-body textarea:focus { border-color: var(--primary); }
+        .modal-body textarea { min-height: 360px; resize: vertical; }
+        .modal-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+            padding: 14px 20px 18px;
+            border-top: 1px solid var(--border);
+        }
+        .modal-msg { font-size: 13px; color: var(--text-muted); }
+        .modal-msg.error { color: var(--danger); }
+        .modal-msg.success { color: var(--success); }
+
         @media (max-width: 768px) {
+            .modal-box { max-height: 95vh; }
+            .config-edit-btn { padding: 8px 10px; font-size: 12px; }
             .container { padding: 12px; }
             .header h1 { font-size: 1.5rem; }
             .channel-url { display: none; }
@@ -921,19 +950,12 @@
         <div class="header">
             <div style="width:140px; flex-shrink:0;"></div>
             <div class="header-center">
-                <h1>📡 组播&酒店IP有效性筛选</h1>
+                <h1>📡 测绘空间 IP 筛选工具合集</h1>
                 <p class="subtitle">酒店 IP 筛选 + 组播 IP 筛选 · 一站式 IPTV 检测工具箱</p>
             </div>
-            <div class="header-dropdown" id="headerDropdown">
-                <button class="header-drop-btn" onclick="document.getElementById('headerDropMenu').classList.toggle('show')">
-                    <span class="link-icon">🌐</span> 测绘空间 <span class="drop-arrow">▾</span>
-                </button>
-                <div class="header-drop-menu" id="headerDropMenu">
-                    <a href="https://fofa.info/" target="_blank">🌐 FOFA 测绘空间</a>
-                    <a href="https://quake.360.net/" target="_blank">🔍 360 网络测绘空间</a>
-                    <a href="https://www.zoomeye.org/" target="_blank">👁 钟馗之眼 ZoomEye</a>
-                </div>
-            </div>
+            <a href="https://fofa.info/" target="_blank" class="header-link" title="访问测绘空间 FOFA">
+                <span class="link-icon">🌐</span> 测绘空间
+            </a>
         </div>
 
         <!-- Tab Navigation -->
@@ -1098,6 +1120,10 @@
                             <option value="8">8秒</option>
                             <option value="10">10秒</option>
                         </select>
+                    </div>
+                    <div class="mc-select-item">
+                        <label>管理</label>
+                        <button class="config-edit-btn" onclick="openConfigEditor()">⚙️ 编辑 config.ini</button>
                     </div>
                 </div>
                 <div class="btn-group">
@@ -1331,7 +1357,7 @@
             </div>
         </div>
 
-        <div class="mc-footer">组播&酒店IP有效性筛选 | Powered by Flask + aiohttp</div>
+        <div class="mc-footer">测绘空间 IP 筛选工具合集 | Powered by Flask + aiohttp</div>
     </div>
 
     <!-- Toast container -->
@@ -1776,11 +1802,6 @@
             });
             document.addEventListener('click', (e) => {
                 if (!mcCombo.contains(e.target)) mcCloseDropdown();
-                // 点击外部关闭测绘空间下拉菜单
-                const hd = document.getElementById('headerDropdown');
-                if (hd && !hd.contains(e.target)) {
-                    document.getElementById('headerDropMenu').classList.remove('show');
-                }
             });
         });
 
@@ -2448,6 +2469,111 @@
         document.getElementById('proxyInput').addEventListener('keydown', (e) => {
             if (e.ctrlKey && e.key === 'Enter') proxyStartCheck();
         });
+
+        // ==================== 管理：编辑 config.ini ====================
+
+        function openConfigEditor() {
+            document.getElementById('configModal').classList.add('show');
+            document.getElementById('configMsg').textContent = '';
+            // 自动聚焦密码框
+            document.getElementById('configPassword').focus();
+        }
+
+        function closeConfigEditor() {
+            document.getElementById('configModal').classList.remove('show');
+        }
+
+        function closeConfigEditorOnBackdrop(event) {
+            if (event.target === document.getElementById('configModal')) {
+                closeConfigEditor();
+            }
+        }
+
+        function setConfigMsg(text, type) {
+            const el = document.getElementById('configMsg');
+            el.textContent = text;
+            el.className = 'modal-msg' + (type ? ' ' + type : '');
+        }
+
+        async function loadConfig() {
+            const password = document.getElementById('configPassword').value;
+            const textarea = document.getElementById('configContent');
+            setConfigMsg('正在加载...', '');
+            try {
+                const res = await fetch('/api/admin/config', {
+                    method: 'GET',
+                    headers: { 'X-Admin-Password': password }
+                });
+                const data = await res.json();
+                if (data.success) {
+                    textarea.value = data.content;
+                    setConfigMsg('✅ 加载成功', 'success');
+                } else {
+                    setConfigMsg(data.error || '加载失败', 'error');
+                }
+            } catch (err) {
+                setConfigMsg('网络错误：' + err.message, 'error');
+            }
+        }
+
+        async function saveConfig() {
+            const password = document.getElementById('configPassword').value;
+            const content = document.getElementById('configContent').value;
+            if (!content.trim()) {
+                setConfigMsg('配置内容不能为空', 'error');
+                return;
+            }
+            setConfigMsg('正在保存...', '');
+            try {
+                const res = await fetch('/api/admin/config', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Admin-Password': password
+                    },
+                    body: JSON.stringify({ content })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    setConfigMsg('✅ ' + data.message, 'success');
+                    // 3 秒后关闭弹窗
+                    setTimeout(closeConfigEditor, 1500);
+                } else {
+                    setConfigMsg(data.error || '保存失败', 'error');
+                }
+            } catch (err) {
+                setConfigMsg('网络错误：' + err.message, 'error');
+            }
+        }
+
+        // 弹窗内快捷键：Ctrl+Enter 保存
+        document.getElementById('configContent').addEventListener('keydown', (e) => {
+            if (e.ctrlKey && e.key === 'Enter') saveConfig();
+        });
     </script>
+
+    <!-- 编辑 config.ini 弹窗 -->
+    <div class="modal-overlay" id="configModal" onclick="closeConfigEditorOnBackdrop(event)">
+        <div class="modal-box" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <h3>⚙️ 编辑 config.ini</h3>
+                <button class="modal-close" onclick="closeConfigEditor()">×</button>
+            </div>
+            <div class="modal-body">
+                <label>管理密码（默认 123456，可通过环境变量 SIFT_ADMIN_PASSWORD 修改）</label>
+                <input type="password" id="configPassword" placeholder="输入管理密码">
+                <label>config.ini 内容</label>
+                <textarea id="configContent" placeholder="加载中..."></textarea>
+            </div>
+            <div class="modal-footer">
+                <span class="modal-msg" id="configMsg"></span>
+                <div style="display:flex;gap:10px;">
+                    <button class="btn" onclick="closeConfigEditor()">取消</button>
+                    <button class="btn btn-primary" onclick="loadConfig()">加载配置</button>
+                    <button class="btn btn-success" onclick="saveConfig()">保存配置</button>
+                </div>
+            </div>
+        </div>
+    </div>
 </body>
 </html>
