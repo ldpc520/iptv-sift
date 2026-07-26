@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>测绘空间 IP 筛选工具合集</title>
+    <title>组播&酒店IP有效性筛选</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -87,6 +87,70 @@
         }
         .header-link .link-icon {
             font-size: 1.1rem;
+        }
+
+        /* Header Dropdown */
+        .header-dropdown {
+            position: relative;
+            flex-shrink: 0;
+            margin-top: 4px;
+        }
+        .header-drop-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 16px;
+            background: rgba(99, 102, 241, 0.1);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.25s;
+            white-space: nowrap;
+            font-family: inherit;
+        }
+        .header-drop-btn:hover {
+            color: #818cf8;
+            border-color: var(--primary);
+            background: rgba(99, 102, 241, 0.15);
+            box-shadow: 0 2px 8px rgba(99, 102, 241, 0.2);
+        }
+        .header-drop-btn .drop-arrow {
+            font-size: 0.75rem;
+            transition: transform 0.2s;
+        }
+        .header-drop-menu {
+            display: none;
+            position: absolute;
+            top: calc(100% + 6px);
+            right: 0;
+            min-width: 200px;
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 6px;
+            z-index: 100;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+        }
+        .header-drop-menu.show {
+            display: block;
+        }
+        .header-drop-menu a {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 12px;
+            color: var(--text-primary);
+            text-decoration: none;
+            font-size: 0.85rem;
+            border-radius: 6px;
+            transition: background 0.15s, color 0.15s;
+        }
+        .header-drop-menu a:hover {
+            background: rgba(99, 102, 241, 0.12);
+            color: #818cf8;
         }
 
         /* Tab Navigation */
@@ -718,6 +782,43 @@
         }
         @keyframes spin { to { transform: rotate(360deg); } }
 
+        /* config 编辑器弹窗样式 */
+        .mc-modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.6);
+            z-index: 10000;
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(4px);
+        }
+        .mc-modal-overlay.show { display: flex; }
+        .mc-modal-box {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 28px 30px;
+            width: 420px;
+            max-width: 90vw;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+            animation: mcModalIn 0.2s ease-out;
+        }
+        .mc-modal-large {
+            width: 720px;
+            max-width: 92vw;
+        }
+        .mc-modal-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--text);
+            margin-bottom: 4px;
+        }
+        @keyframes mcModalIn {
+            from { opacity: 0; transform: translateY(-20px) scale(0.97); }
+            to   { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
         .mc-progress-wrap { margin: 14px auto 0; max-width: 500px; }
         .mc-progress-bar-outer {
             width: 100%;
@@ -777,6 +878,14 @@
             padding:2px 8px; border-radius:10px; margin-top:6px;
             background:rgba(99,102,241,0.15); color:#818cf8;
         }
+        .channel-card .ch-speed {
+            display:inline-block; font-size:11px; font-weight:700;
+            padding:2px 8px; border-radius:10px; margin-top:6px; margin-left:6px;
+            background:rgba(34,197,94,0.1); border:1px solid rgba(34,197,94,0.2);
+        }
+        .channel-card .ch-speed.speed-fast { background:rgba(52,211,153,0.12); border-color:rgba(52,211,153,0.3); color:#34d399; }
+        .channel-card .ch-speed.speed-mid { background:rgba(251,191,36,0.12); border-color:rgba(251,191,36,0.3); color:#fbbf24; }
+        .channel-card .ch-speed.speed-slow { background:rgba(248,113,113,0.12); border-color:rgba(248,113,113,0.3); color:#f87171; }
         .channel-card .ch-url {
             font-size:11px; color:var(--text-muted); margin-top:6px;
             word-break:break-all; opacity:0; max-height:0;
@@ -838,100 +947,7 @@
         }
         .player-selector select:focus { border-color:var(--primary); }
 
-        /* 管理：编辑 config.ini 弹窗 */
-        .config-edit-btn {
-            padding: 8px 14px;
-            border: none;
-            border-radius: var(--radius-sm);
-            background: var(--warning);
-            color: #000;
-            font-size: 13px;
-            font-weight: 600;
-            cursor: pointer;
-            display: inline-flex;
-            align-items: center;
-            gap: 5px;
-            transition: filter 0.2s, transform 0.2s;
-            white-space: nowrap;
-        }
-        .config-edit-btn:hover { filter: brightness(1.1); transform: translateY(-1px); }
-        .modal-overlay {
-            position: fixed;
-            inset: 0;
-            background: rgba(0,0,0,0.7);
-            display: none;
-            align-items: center;
-            justify-content: center;
-            z-index: 1000;
-            padding: 20px;
-        }
-        .modal-overlay.show { display: flex; }
-        .modal-box {
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: var(--radius);
-            width: 100%;
-            max-width: 720px;
-            max-height: 90vh;
-            display: flex;
-            flex-direction: column;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
-        }
-        .modal-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 16px 20px;
-            border-bottom: 1px solid var(--border);
-        }
-        .modal-header h3 { font-size: 18px; }
-        .modal-close {
-            background: transparent;
-            border: none;
-            color: var(--text-muted);
-            font-size: 22px;
-            cursor: pointer;
-            line-height: 1;
-        }
-        .modal-close:hover { color: var(--text); }
-        .modal-body {
-            padding: 16px 20px;
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-            overflow: auto;
-        }
-        .modal-body label { font-size: 13px; color: var(--text-muted); font-weight: bold; }
-        .modal-body input[type="password"],
-        .modal-body textarea {
-            width: 100%;
-            padding: 10px 12px;
-            border: 2px solid var(--border);
-            border-radius: var(--radius-sm);
-            background: var(--bg-input);
-            color: var(--text);
-            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-            font-size: 13px;
-            outline: none;
-        }
-        .modal-body input[type="password"]:focus,
-        .modal-body textarea:focus { border-color: var(--primary); }
-        .modal-body textarea { min-height: 360px; resize: vertical; }
-        .modal-footer {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 10px;
-            padding: 14px 20px 18px;
-            border-top: 1px solid var(--border);
-        }
-        .modal-msg { font-size: 13px; color: var(--text-muted); }
-        .modal-msg.error { color: var(--danger); }
-        .modal-msg.success { color: var(--success); }
-
         @media (max-width: 768px) {
-            .modal-box { max-height: 95vh; }
-            .config-edit-btn { padding: 8px 10px; font-size: 12px; }
             .container { padding: 12px; }
             .header h1 { font-size: 1.5rem; }
             .channel-url { display: none; }
@@ -950,12 +966,19 @@
         <div class="header">
             <div style="width:140px; flex-shrink:0;"></div>
             <div class="header-center">
-                <h1>📡 测绘空间 IP 筛选工具合集</h1>
+                <h1>📡 组播&酒店IP有效性筛选</h1>
                 <p class="subtitle">酒店 IP 筛选 + 组播 IP 筛选 · 一站式 IPTV 检测工具箱</p>
             </div>
-            <a href="https://fofa.info/" target="_blank" class="header-link" title="访问测绘空间 FOFA">
-                <span class="link-icon">🌐</span> 测绘空间
-            </a>
+            <div class="header-dropdown" id="headerDropdown">
+                <button class="header-drop-btn" onclick="document.getElementById('headerDropMenu').classList.toggle('show')">
+                    <span class="link-icon">🌐</span> 测绘空间 <span class="drop-arrow">▾</span>
+                </button>
+                <div class="header-drop-menu" id="headerDropMenu">
+                    <a href="https://fofa.info/" target="_blank">🌐 FOFA 测绘空间</a>
+                    <a href="https://quake.360.net/" target="_blank">🔍 360 网络测绘空间</a>
+                    <a href="https://www.zoomeye.org/" target="_blank">👁 钟馗之眼 ZoomEye</a>
+                </div>
+            </div>
         </div>
 
         <!-- Tab Navigation -->
@@ -1095,7 +1118,10 @@
 
             <!-- Step 2: Select multicast & check -->
             <div class="card">
-                <div class="card-title"><span class="icon icon-source">🔗</span> 第二步：选择组播ID与协议</div>
+                <div class="card-title" style="justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+                    <div style="display:flex;align-items:center;gap:8px;"><span class="icon icon-source">🔗</span> 第二步：选择组播ID与协议</div>
+                    <button class="btn btn-sm btn-outline" onclick="mcOpenConfigEditor()" title="编辑 config.ini 配置文件">⚙️ 配置</button>
+                </div>
                 <div class="mc-select-group">
                     <div class="mc-select-item">
                         <label>组播地址（下拉选择或手动输入）</label>
@@ -1120,10 +1146,6 @@
                             <option value="8">8秒</option>
                             <option value="10">10秒</option>
                         </select>
-                    </div>
-                    <div class="mc-select-item">
-                        <label>管理</label>
-                        <button class="config-edit-btn" onclick="openConfigEditor()">⚙️ 编辑 config.ini</button>
                     </div>
                 </div>
                 <div class="btn-group">
@@ -1191,9 +1213,8 @@
                 <div class="history-tags" id="iptvHistoryTags" style="margin-top:12px;"></div>
                 <div class="btn-group" id="iptvQuickActions" style="display:none;">
                     <button class="btn btn-sm btn-outline" onclick="iptvExportM3U()">🎵 导出 M3U</button>
-                    <button class="btn btn-sm btn-outline" onclick="iptvExportCSV()">📊 导出 CSV</button>
-                    <button class="btn btn-sm btn-outline" onclick="iptvCopyJSON()">📋 复制 JSON</button>
-                    <button class="btn btn-sm btn-success" onclick="iptvOpenAll()">▶️ 打开播放列表</button>
+                    <button class="btn btn-sm btn-outline" onclick="iptvExportTXT()">📄 导出 TXT</button>
+                    <button class="btn btn-sm btn-outline" onclick="iptvExportAllTXT()">📋 导出全部频道</button>
                 </div>
             </div>
 
@@ -1357,7 +1378,7 @@
             </div>
         </div>
 
-        <div class="mc-footer">测绘空间 IP 筛选工具合集 | Powered by Flask + aiohttp</div>
+        <div class="mc-footer">组播&酒店IP有效性筛选 | Powered by Flask + aiohttp</div>
     </div>
 
     <!-- Toast container -->
@@ -1802,6 +1823,11 @@
             });
             document.addEventListener('click', (e) => {
                 if (!mcCombo.contains(e.target)) mcCloseDropdown();
+                // 点击外部关闭测绘空间下拉菜单
+                const hd = document.getElementById('headerDropdown');
+                if (hd && !hd.contains(e.target)) {
+                    document.getElementById('headerDropMenu').classList.remove('show');
+                }
             });
         });
 
@@ -2041,6 +2067,7 @@
         let iptvCurrentData = null;
         let iptvCurrentServer = '';
         let iptvCurrentFilter = 'all';
+        let iptvOriginalData = null;  // 保存验证前的完整频道列表
 
         (function() {
             document.getElementById('iptvPlayerSelect').value = iptvGetPlayerPref();
@@ -2123,12 +2150,19 @@
                     throw new Error(json.msg || ('HTTP ' + resp.status));
                 }
                 iptvCurrentData = json;
+                iptvOriginalData = json;
                 iptvSaveHistory(iptvCurrentServer);
-                iptvRenderChannels(json);
-                document.getElementById('iptvStatusBadge').textContent = '✅ 请求成功';
-                document.getElementById('iptvStatusBadge').style.color = 'var(--success)';
-                document.getElementById('iptvChannelCount').innerHTML = '共 <strong>' + json.count + '</strong> 个频道';
-                document.getElementById('iptvQuickActions').style.display = 'flex';
+
+                // 获取到频道列表后，自动进行并发拉流验证
+                if (json.data && json.data.length > 0) {
+                    await iptvVerifyChannels(json, iptvCurrentServer);
+                } else {
+                    iptvRenderChannels(json);
+                    document.getElementById('iptvStatusBadge').textContent = '✅ 请求成功';
+                    document.getElementById('iptvStatusBadge').style.color = 'var(--success)';
+                    document.getElementById('iptvChannelCount').innerHTML = '共 <strong>' + json.count + '</strong> 个频道';
+                    document.getElementById('iptvQuickActions').style.display = 'flex';
+                }
             } catch (err) {
                 console.error(err);
                 iptvCurrentData = null;
@@ -2142,6 +2176,112 @@
                 btn.disabled = false;
                 btn.innerHTML = '🔍 查询';
             }
+        }
+
+        async function iptvVerifyChannels(json, server) {
+            const statusBadge = document.getElementById('iptvStatusBadge');
+            const channelCount = document.getElementById('iptvChannelCount');
+            const grid = document.getElementById('iptvChannelGrid');
+            const total = json.data.length;
+
+            statusBadge.textContent = '🔄 正在拉流验证...';
+            statusBadge.style.color = 'var(--primary)';
+            channelCount.innerHTML = `共 <strong>${total}</strong> 个频道，正在检测有效性...`;
+
+            // 显示验证进度
+            grid.innerHTML = `
+                <div style="text-align:center;padding:40px 20px;">
+                    <div class="mc-spinner" style="margin:0 auto 16px;"></div>
+                    <p style="color:var(--text-muted);font-size:14px;">正在并发验证 ${total} 个直播源...</p>
+                    <p style="color:var(--text-muted);font-size:12px;margin-top:8px;">（使用 aiohttp 并发拉流检测，请耐心等待）</p>
+                </div>`;
+
+            try {
+                const verifyResp = await fetch('/api/iptv/verify', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        server: server,
+                        channels: json.data.map(ch => ({ name: ch.name, url: ch.url })),
+                        concurrency: 30,
+                        timeout: 8
+                    })
+                });
+                const vdata = await verifyResp.json();
+
+                if (vdata.code !== 0) {
+                    throw new Error(vdata.msg || '验证失败');
+                }
+
+                const validCount = vdata.valid_count;
+                const invalidCount = vdata.total - validCount;
+
+                // 用验证后的有效频道替换原始数据
+                iptvCurrentData = {
+                    ...json,
+                    data: vdata.data,
+                    count: validCount,
+                    verified: true,
+                    _originalTotal: total
+                };
+
+                // 渲染结果
+                iptvRenderVerifiedChannels(vdata.data, total, validCount);
+
+                statusBadge.textContent = `✅ 验证完成 (${validCount}/${total} 有效)`;
+                statusBadge.style.color = validCount > 0 ? 'var(--success)' : 'var(--danger)';
+                channelCount.innerHTML = `共 <strong>${total}</strong> 个频道 → 有效 <strong style="color:var(--success);">${validCount}</strong> 个${invalidCount > 0 ? `<span style="color:var(--danger);">（剔除 ${invalidCount} 无效）</span>` : ''}`;
+                document.getElementById('iptvQuickActions').style.display = validCount > 0 ? 'flex' : 'none';
+
+                if (validCount === 0) {
+                    showToast(`全部 ${total} 个频道均无效`, 'warning');
+                }
+            } catch (err) {
+                console.error('IPTV verify error:', err);
+                // 验证失败时回退显示原始数据
+                iptvRenderChannels(json);
+                statusBadge.textContent = '⚠️ 验证失败，显示原始数据';
+                statusBadge.style.color = 'var(--warning)';
+                channelCount.innerHTML = '共 <strong>' + json.count + '</strong> 个频道';
+                document.getElementById('iptvQuickActions').style.display = 'flex';
+                showToast('拉流验证失败: ' + err.message + '，已显示原始数据', 'warning');
+            }
+        }
+
+        function iptvRenderVerifiedChannels(data, total, validCount) {
+            const filterEl = document.getElementById('iptvFilterTabs');
+            filterEl.style.display = 'none';  // 验证后不再按类型筛选
+
+            const grid = document.getElementById('iptvChannelGrid');
+            if (!data.length) {
+                grid.innerHTML = `
+                    <div class="empty-state">
+                        <div class="icon-lg">❌</div>
+                        <p>所有 ${total} 个直播源均无效</p>
+                        <p style="font-size:12px;color:var(--text-muted);margin-top:6px;">可能服务器不可用或源地址已失效</p>
+                    </div>`;
+                return;
+            }
+            grid.innerHTML = data.map((ch, i) => {
+                const speedMs = ch.speed_ms || 0;
+                let speedClass = '', speedLabel = '';
+                if (speedMs > 0) {
+                    if (speedMs < 300) { speedClass = 'speed-fast'; speedLabel = `${speedMs}ms`; }
+                    else if (speedMs < 1000) { speedClass = 'speed-mid'; speedLabel = `${speedMs}ms`; }
+                    else { speedClass = 'speed-slow'; speedLabel = `${Math.round(speedMs / 1000 * 10) / 10}s`; }
+                }
+                return `
+                <div class="channel-card" data-speed="${speedMs}">
+                    <div class="ch-num">NO. ${i + 1}</div>
+                    <div class="ch-name" onclick="iptvCopyUrl('${escAttr(ch.url)}', '${escAttr(ch.name)}')">${escHtml(ch.name)}</div>
+                    ${speedMs > 0 ? `<span class="ch-speed ${speedClass}" title="响应速度">⚡ ${speedLabel}</span>` : ''}
+                    <div class="ch-url">${escHtml(ch.url)}</div>
+                    <div class="ch-actions">
+                        <button class="btn-play-sm" onclick="event.stopPropagation();iptvOpenInPlayer('${escAttr(ch.url)}', '${escAttr(ch.name)}')">▶ 播放</button>
+                        <button class="btn-play-sm pp" onclick="event.stopPropagation();iptvOpenInPlayer('${escAttr(ch.url)}', '${escAttr(ch.name)}', 'potplayer')">🍊 PP</button>
+                    </div>
+                </div>`;
+            }).join('');
         }
 
         function iptvRenderChannels(json) {
@@ -2176,6 +2316,13 @@
             iptvRenderGrid(iptvCurrentData.data);
         }
 
+        function _iptvFullUrl(ch) {
+            /* 智能拼接频道完整URL：如果 ch.url 已是完整地址则直接使用，否则拼接 server 前缀 */
+            const url = ch.url || '';
+            if (url.startsWith('http://') || url.startsWith('https://')) return url;
+            return 'http://' + iptvCurrentServer + url;
+        }
+
         function iptvRenderGrid(data) {
             const filtered = iptvCurrentFilter === 'all' ? data : data.filter(ch => (ch.typename || '其他') === iptvCurrentFilter);
             const grid = document.getElementById('iptvChannelGrid');
@@ -2184,7 +2331,7 @@
                 return;
             }
             grid.innerHTML = filtered.map(ch => {
-                const fullUrl = ch.url ? ('http://' + iptvCurrentServer + ch.url) : '';
+                const fullUrl = _iptvFullUrl(ch);
                 return `
                 <div class="channel-card">
                     <div class="ch-num">NO. ${ch.num}</div>
@@ -2225,7 +2372,7 @@
             const player = iptvGetPlayerPref();
             let m3u = '#EXTM3U\n#PLAYLIST: IPTV (' + iptvCurrentServer + ')\n';
             iptvCurrentData.data.forEach(ch => {
-                const fullUrl = ch.url ? ('http://' + iptvCurrentServer + ch.url) : '';
+                const fullUrl = _iptvFullUrl(ch);
                 if (fullUrl) {
                     m3u += '#EXTINF:-1 tvg-id="' + ch.chid + '" group-title="' + (ch.typename || '') + '",' + ch.name + '\n';
                     m3u += fullUrl + '\n';
@@ -2239,23 +2386,36 @@
             if (!iptvCurrentData) return;
             let m3u = '#EXTM3U\n#PLAYLIST: IPTV Channel List (' + iptvCurrentServer + ')\n';
             iptvCurrentData.data.forEach(ch => {
-                const fullUrl = ch.url ? ('http://' + iptvCurrentServer + ch.url) : '';
-                m3u += '#EXTINF:-1 tvg-id="' + ch.chid + '" tvg-name="' + ch.name + '" group-title="' + (ch.typename || '') + '",' + ch.name + '\n';
+                const fullUrl = _iptvFullUrl(ch);
+                m3u += '#EXTINF:-1 tvg-id="' + (ch.chid || '') + '" tvg-name="' + ch.name + '" group-title="' + (ch.typename || '') + '",' + ch.name + '\n';
                 m3u += fullUrl + '\n';
             });
             downloadFile('iptv_channels_' + iptvCurrentServer.replace(/[.:]/g, '_') + '.m3u', m3u);
             showToast('M3U 文件已下载', 'success');
         }
 
-        function iptvExportCSV() {
+        function iptvExportTXT() {
             if (!iptvCurrentData) return;
-            let csv = '\uFEFF序号,频道名称,分类,频道ID,播放地址\n';
+            let txt = '';
             iptvCurrentData.data.forEach(ch => {
-                const fullUrl = ch.url ? ('http://' + iptvCurrentServer + ch.url) : '';
-                csv += ch.num + ',"' + ch.name + '","' + (ch.typename || '') + '",' + ch.chid + ',"' + fullUrl + '"\n';
+                const fullUrl = _iptvFullUrl(ch);
+                txt += ch.name + ',' + fullUrl + '\n';
             });
-            downloadFile('iptv_channels_' + iptvCurrentServer.replace(/[.:]/g, '_') + '.csv', csv);
-            showToast('CSV 文件已下载', 'success');
+            downloadFile('iptv_channels_' + iptvCurrentServer.replace(/[.:]/g, '_') + '.txt', txt);
+            showToast('TXT 文件已下载', 'success');
+        }
+
+        function iptvExportAllTXT() {
+            // 导出验证前的完整频道列表（包含所有频道，不论有效无效）
+            const src = iptvOriginalData || iptvCurrentData;
+            if (!src || !src.data || !src.data.length) { showToast('没有频道数据', 'error'); return; }
+            let txt = '';
+            src.data.forEach(ch => {
+                const fullUrl = _iptvFullUrl(ch);
+                txt += ch.name + ',' + fullUrl + '\n';
+            });
+            downloadFile('iptv_all_channels_' + iptvCurrentServer.replace(/[.:]/g, '_') + '.txt', txt);
+            showToast('全部频道列表已下载 (' + src.data.length + ' 个)', 'success');
         }
 
         async function iptvCopyJSON() {
@@ -2470,108 +2630,149 @@
             if (e.ctrlKey && e.key === 'Enter') proxyStartCheck();
         });
 
-        // ==================== 管理：编辑 config.ini ====================
-
-        function openConfigEditor() {
-            document.getElementById('configModal').classList.add('show');
-            document.getElementById('configMsg').textContent = '';
-            // 自动聚焦密码框
-            document.getElementById('configPassword').focus();
+        // ==================== config.ini 编辑器 ====================
+        function mcOpenConfigEditor() {
+            document.getElementById('mcPwdModal').classList.add('show');
+            document.getElementById('mcPwdInput').value = '';
+            document.getElementById('mcPwdInput').focus();
+            document.getElementById('mcPwdError').textContent = '';
         }
 
-        function closeConfigEditor() {
-            document.getElementById('configModal').classList.remove('show');
+        function mcClosePwdModal() {
+            document.getElementById('mcPwdModal').classList.remove('show');
         }
 
-        function closeConfigEditorOnBackdrop(event) {
-            if (event.target === document.getElementById('configModal')) {
-                closeConfigEditor();
-            }
-        }
-
-        function setConfigMsg(text, type) {
-            const el = document.getElementById('configMsg');
-            el.textContent = text;
-            el.className = 'modal-msg' + (type ? ' ' + type : '');
-        }
-
-        async function loadConfig() {
-            const password = document.getElementById('configPassword').value;
-            const textarea = document.getElementById('configContent');
-            setConfigMsg('正在加载...', '');
+        async function mcSubmitPassword() {
+            const pwd = document.getElementById('mcPwdInput').value.trim();
+            if (!pwd) { document.getElementById('mcPwdError').textContent = '请输入密码'; return; }
+            const btn = document.getElementById('mcPwdSubmitBtn');
+            btn.disabled = true; btn.textContent = '验证中...';
             try {
-                const res = await fetch('/api/admin/config', {
-                    method: 'GET',
-                    headers: { 'X-Admin-Password': password }
-                });
-                const data = await res.json();
-                if (data.success) {
-                    textarea.value = data.content;
-                    setConfigMsg('✅ 加载成功', 'success');
-                } else {
-                    setConfigMsg(data.error || '加载失败', 'error');
-                }
-            } catch (err) {
-                setConfigMsg('网络错误：' + err.message, 'error');
-            }
-        }
-
-        async function saveConfig() {
-            const password = document.getElementById('configPassword').value;
-            const content = document.getElementById('configContent').value;
-            if (!content.trim()) {
-                setConfigMsg('配置内容不能为空', 'error');
-                return;
-            }
-            setConfigMsg('正在保存...', '');
-            try {
-                const res = await fetch('/api/admin/config', {
+                const resp = await fetch('/api/config/verify_password', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-Admin-Password': password
-                    },
-                    body: JSON.stringify({ content })
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ password: pwd })
                 });
-                const data = await res.json();
-                if (data.success) {
-                    setConfigMsg('✅ ' + data.message, 'success');
-                    // 3 秒后关闭弹窗
-                    setTimeout(closeConfigEditor, 1500);
+                const data = await resp.json();
+                if (data.code === 0) {
+                    mcClosePwdModal();
+                    await mcLoadAndShowEditor(pwd);
                 } else {
-                    setConfigMsg(data.error || '保存失败', 'error');
+                    document.getElementById('mcPwdError').textContent = data.msg || '密码错误';
                 }
-            } catch (err) {
-                setConfigMsg('网络错误：' + err.message, 'error');
+            } catch (e) {
+                document.getElementById('mcPwdError').textContent = '网络错误';
+            } finally {
+                btn.disabled = false; btn.textContent = '确认进入';
             }
         }
 
-        // 弹窗内快捷键：Ctrl+Enter 保存
-        document.getElementById('configContent').addEventListener('keydown', (e) => {
-            if (e.ctrlKey && e.key === 'Enter') saveConfig();
+        async function mcLoadAndShowEditor(pwd) {
+            const modal = document.getElementById('mcConfigModal');
+            const textarea = document.getElementById('mcConfigTextarea');
+            const statusEl = document.getElementById('mcConfigStatus');
+            modal.classList.add('show');
+            statusEl.textContent = '正在加载...';
+            textarea.value = '';
+            try {
+                const resp = await fetch('/api/config/read', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ password: pwd })
+                });
+                const data = await resp.json();
+                if (data.code === 0) {
+                    textarea.value = data.data.content;
+                    statusEl.textContent = '已加载，编辑后点击保存（密码: 已验证）';
+                    textarea.focus();
+                } else {
+                    statusEl.textContent = data.msg || '加载失败';
+                }
+            } catch (e) {
+                statusEl.textContent = '加载失败: ' + e.message;
+            }
+        }
+
+        function mcCloseConfigModal() {
+            document.getElementById('mcConfigModal').classList.remove('show');
+        }
+
+        async function mcSaveConfig() {
+            const pwd = document.getElementById('mcPwdInput').value.trim();
+            if (!pwd) { showToast('请先验证密码', 'error'); mcOpenConfigEditor(); return; }
+            const content = document.getElementById('mcConfigTextarea').value;
+            const statusEl = document.getElementById('mcConfigStatus');
+            const btn = document.getElementById('mcConfigSaveBtn');
+            btn.disabled = true; btn.textContent = '保存中...';
+            statusEl.textContent = '正在保存...';
+            try {
+                const resp = await fetch('/api/config/save', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ password: pwd, content: content })
+                });
+                const data = await resp.json();
+                if (data.code === 0) {
+                    statusEl.textContent = '✅ ' + (data.msg || '保存成功');
+                    showToast(data.msg || '保存成功', 'success');
+                    // 刷新组播下拉框
+                    try {
+                        const cfgResp = await fetch('/api/multicast/config');
+                        const cfgData = await cfgResp.json();
+                        if (cfgData.code === 0) {
+                            mcConfig = cfgData.data;
+                            mcBuildDropdown(mcConfig);
+                        }
+                    } catch (_) {}
+                } else {
+                    statusEl.textContent = '❌ ' + (data.msg || '保存失败');
+                    showToast(data.msg || '保存失败', 'error');
+                }
+            } catch (e) {
+                statusEl.textContent = '❌ 保存失败: ' + e.message;
+                showToast('保存失败: ' + e.message, 'error');
+            } finally {
+                btn.disabled = false; btn.textContent='💾 保存配置';
+            }
+        }
+
+        // 密码弹窗回车提交
+        document.getElementById('mcPwdInput').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') mcSubmitPassword();
         });
     </script>
 
-    <!-- 编辑 config.ini 弹窗 -->
-    <div class="modal-overlay" id="configModal" onclick="closeConfigEditorOnBackdrop(event)">
-        <div class="modal-box" onclick="event.stopPropagation()">
-            <div class="modal-header">
-                <h3>⚙️ 编辑 config.ini</h3>
-                <button class="modal-close" onclick="closeConfigEditor()">×</button>
+    <!-- config.ini 密码验证弹窗 -->
+    <div class="mc-modal-overlay" id="mcPwdModal">
+        <div class="mc-modal-box">
+            <div class="mc-modal-title">🔐 需要验证身份</div>
+            <div style="margin:16px 0;color:var(--text-muted);font-size:13px;">请输入配置编辑密码以访问 config.ini 编辑器</div>
+            <input type="password" id="mcPwdInput" placeholder="请输入密码..." autocomplete="off"
+                style="width:100%;padding:12px 16px;background:var(--bg-input);border:2px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:15px;outline:none;box-sizing:border-box;"
+                onfocus="this.style.borderColor='var(--primary)'" onblur="this.style.borderColor='var(--border)'">
+            <div id="mcPwdError" style="color:#f87171;font-size:13px;margin-top:8px;min-height:18px;"></div>
+            <div style="display:flex;gap:10px;margin-top:20px;">
+                <button class="btn btn-primary" id="mcPwdSubmitBtn" onclick="mcSubmitPassword()" style="flex:1;padding:10px;">确认进入</button>
+                <button class="btn btn-outline" onclick="mcClosePwdModal()" style="padding:10px;">取消</button>
             </div>
-            <div class="modal-body">
-                <label>管理密码（默认 123456，可通过环境变量 SIFT_ADMIN_PASSWORD 修改）</label>
-                <input type="password" id="configPassword" placeholder="输入管理密码">
-                <label>config.ini 内容</label>
-                <textarea id="configContent" placeholder="加载中..."></textarea>
+        </div>
+    </div>
+
+    <!-- config.ini 编辑器弹窗 -->
+    <div class="mc-modal-overlay" id="mcConfigModal">
+        <div class="mc-modal-box mc-modal-large">
+            <div class="mc-modal-title" style="display:flex;justify-content:space-between;align-items:center;">
+                <span>⚙️ 编辑 config.ini</span>
+                <button onclick="mcCloseConfigModal()" style="background:none;border:none;color:var(--text-muted);font-size:22px;cursor:pointer;line-height:1;padding:0 4px;">&times;</button>
             </div>
-            <div class="modal-footer">
-                <span class="modal-msg" id="configMsg"></span>
-                <div style="display:flex;gap:10px;">
-                    <button class="btn" onclick="closeConfigEditor()">取消</button>
-                    <button class="btn btn-primary" onclick="loadConfig()">加载配置</button>
-                    <button class="btn btn-success" onclick="saveConfig()">保存配置</button>
-                </div>
+            <div id="mcConfigStatus" style="margin:8px 0 12px;color:var(--text-muted);font-size:13px;"></div>
+            <textarea id="mcConfigTextarea"
+                style="width:100%;height:380px;padding:14px;background:var(--bg-input);border:2px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:13px;font-family:'JetBrains Mono','Fira Code','Consolas',monospace;outline:none;resize:vertical;box-sizing:border-box;line-height:1.6;"
+                onfocus="this.style.borderColor='var(--primary)'" onblur="this.style.borderColor='var(--border)'"
+                spellcheck="false"></textarea>
+            <div style="display:flex;gap:10px;margin-top:16px;justify-content:flex-end;">
+                <button class="btn btn-outline" onclick="mcCloseConfigModal()" style="padding:10px 20px;">关闭</button>
+                <button class="btn btn-primary" id="mcConfigSaveBtn" onclick="mcSaveConfig()" style="padding:10px 24px;">💾 保存配置</button>
             </div>
         </div>
     </div>

@@ -17,8 +17,10 @@ import subprocess
 import asyncio
 import concurrent.futures
 import threading
+import shutil
 import urllib.request
 import urllib.error
+import configparser
 
 from flask import Flask, render_template, request, jsonify, Response
 import requests as http_requests
@@ -40,10 +42,12 @@ except ImportError:
 app = Flask(__name__)
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-CONFIG_FILE = os.path.join(BASE_DIR, 'config.ini')
-
-# 管理密码：用于在线编辑 config.ini，默认 123456，可通过环境变量 SIFT_ADMIN_PASSWORD 修改
-ADMIN_PASSWORD = os.environ.get('SIFT_ADMIN_PASSWORD', '123456')
+# 配置文件存放目录：默认指向镜像内置位置；Docker 部署时通过环境变量指向挂载卷（如 /data）
+CONFIG_DIR = os.environ.get('CONFIG_DIR', BASE_DIR)
+# 持久化配置文件路径（运行时读写都走这里，便于挂载卷实现数据持久化）
+CONFIG_FILE = os.path.join(CONFIG_DIR, 'config.ini')
+# 镜像内置的默认配置（仅作首次种子，容器重启不会覆盖已有配置）
+DEFAULT_CONFIG_FILE = os.path.join(BASE_DIR, 'config.ini')
 
 # ==================== 全局进度 ====================
 
@@ -52,9 +56,16 @@ scan_progress = {"total": 0, "checked": 0, "valid": 0, "status": "idle", "phase"
 
 # ==================== 配置文件（组播用） ====================
 
-# 首次运行自动生成 config.ini
+# 首次运行：若持久化目录中不存在 config.ini，则从镜像内置默认配置复制（便于挂载卷持久化）
 if not os.path.exists(CONFIG_FILE):
-    default_content = """[multicast]
+    os.makedirs(CONFIG_DIR, exist_ok=True)
+    if os.path.exists(DEFAULT_CONFIG_FILE) and os.path.abspath(DEFAULT_CONFIG_FILE) != os.path.abspath(CONFIG_FILE):
+        # 用户已挂载卷（如 /data）但卷内为空：用镜像内置默认配置作种子
+        shutil.copyfile(DEFAULT_CONFIG_FILE, CONFIG_FILE)
+        print("已从镜像默认配置初始化: " + CONFIG_FILE)
+    else:
+        # 完全首次运行（未挂载卷），生成内置默认配置
+        default_content = """[multicast]
 # 格式: 名称|组播地址:端口
 # 一行一个
 广东电信|239.77.0.1:5146
@@ -64,13 +75,13 @@ if not os.path.exists(CONFIG_FILE):
 四川电信|239.93.1.9:2192
 四川成都电信|239.94.2.52:5140
 """
-    with open(CONFIG_FILE, 'w', encoding='utf-8') as f:
-        f.write(default_content)
-    print("已自动生成 config.ini 配置文件")
+        with open(CONFIG_FILE, 'w', encoding='utf-8') as f:
+            f.write(default_content)
+        print("已自动生成 config.ini 配置文件")
 
 
 def load_multicast_config():
-    """读取 config.ini 中的组播配置"""
+    """读取 config.ini 中的组播配置（仅读取 [multicast] 段）"""
     items = []
     if not os.path.exists(CONFIG_FILE):
         return items
@@ -86,6 +97,36 @@ def load_multicast_config():
                     'addr': parts[1].strip()
                 })
     return items
+
+
+def get_config_password():
+    """从 config.ini 的 [system] 段读取编辑密码，默认 123456"""
+    default_pwd = '123456'
+    if not os.path.exists(CONFIG_FILE):
+        return default_pwd
+    try:
+        cfg = configparser.ConfigParser()
+        cfg.read(CONFIG_FILE, encoding='utf-8')
+        return cfg.get('system', 'password', fallback=default_pwd)
+    except Exception:
+        return default_pwd
+
+
+def read_full_config():
+    """读取 config.ini 全部文本内容"""
+    if not os.path.exists(CONFIG_FILE):
+        return ''
+    with open(CONFIG_FILE, 'r', encoding='utf-8') as f:
+        return f.read()
+
+
+def save_full_config(content):
+    """保存 config.ini 全部内容（原子写入）"""
+    tmp_file = CONFIG_FILE + '.tmp'
+    with open(tmp_file, 'w', encoding='utf-8') as f:
+        f.write(content)
+    os.replace(tmp_file, CONFIG_FILE)
+    return True
 
 
 # ==================== 工具函数 ====================
@@ -1270,6 +1311,84 @@ def api_iptv_query():
     }), 502
 
 
+@app.route('/api/iptv/verify', methods=['POST'])
+def api_iptv_verify():
+    """
+    对 IPTV 频道列表中的每个直播源进行并发拉流验证
+    POST body: { server: "ip:port", channels: [{name, url}, ...] }
+    返回: { code: 0, data: [{name, url, speed_ms}, ...], total, valid_count }
+    """
+    data = request.get_json()
+    server = (data.get('server') or '').strip()
+    raw_channels = data.get('channels', [])
+    concurrency = min(data.get('concurrency', 30), 50)
+    timeout = min(data.get('timeout', 8), 15)
+
+    if not raw_channels:
+        return jsonify({'code': 1, 'msg': '频道列表为空'})
+
+    # 构建完整的频道 URL 列表
+    base = server
+    if not base.startswith('http://') and not base.startswith('https://'):
+        base = 'http://' + base
+    base = base.rstrip('/')
+
+    channels_to_check = []
+    for ch in raw_channels:
+        name = ch.get('name', '')
+        url_raw = ch.get('url', '')
+        if not url_raw:
+            continue
+        # 拼接完整 URL
+        if url_raw.startswith('http://') or url_raw.startswith('https://'):
+            full_url = url_raw
+        elif url_raw.startswith('/'):
+            full_url = base + url_raw
+        else:
+            full_url = base + '/' + url_raw
+        channels_to_check.append((name, full_url))
+
+    if not channels_to_check:
+        return jsonify({'code': 1, 'msg': '无有效频道地址'})
+
+    total = len(channels_to_check)
+
+    # 无 aiohttp 时直接返回全部（标记未验证）
+    if not HAS_AIOHTTP:
+        return jsonify({
+            'code': 0,
+            'data': [{'name': n, 'url': u, 'speed_ms': 0} for n, u in channels_to_check],
+            'total': total,
+            'valid_count': total,
+            'verified': False,
+            'msg': 'aiohttp 未安装，跳过拉流验证'
+        })
+
+    # 并发拉流验证（复用已有的 verify_streams_sync）
+    results = verify_streams_sync(channels_to_check, max_concurrent=concurrency, timeout=timeout)
+
+    valid_channels = []
+    for name, url, is_valid, speed_kbps, speed_ms in results:
+        if is_valid and name:
+            valid_channels.append({
+                'name': name,
+                'url': url,
+                'speed_ms': round(speed_ms, 1),
+                'speed_kbps': round(speed_kbps, 1)
+            })
+
+    # 按速度排序（快的在前）
+    valid_channels.sort(key=lambda x: x['speed_ms'])
+
+    return jsonify({
+        'code': 0,
+        'data': valid_channels,
+        'total': total,
+        'valid_count': len(valid_channels),
+        'verified': True
+    })
+
+
 # ===== 组播 IP 筛选 API =====
 
 @app.route('/api/multicast/config', methods=['GET'])
@@ -1377,6 +1496,50 @@ def api_multicast_play():
         return jsonify({'code': 1, 'msg': f'播放失败: {str(e)}'})
 
 
+# ===== 配置文件编辑 API（需密码） =====
+
+@app.route('/api/config/verify_password', methods=['POST'])
+def api_config_verify_password():
+    """验证编辑密码"""
+    data = request.get_json()
+    pwd = data.get('password', '')
+    correct_pwd = get_config_password()
+    if pwd == correct_pwd:
+        return jsonify({'code': 0, 'msg': '验证通过'})
+    return jsonify({'code': 1, 'msg': '密码错误'}), 401
+
+
+@app.route('/api/config/read', methods=['POST'])
+def api_config_read():
+    """读取 config.ini 全部内容（需密码）"""
+    data = request.get_json()
+    pwd = data.get('password', '')
+    correct_pwd = get_config_password()
+    if pwd != correct_pwd:
+        return jsonify({'code': 1, 'msg': '密码错误'}), 401
+    content = read_full_config()
+    return jsonify({'code': 0, 'data': {'content': content}})
+
+
+@app.route('/api/config/save', methods=['POST'])
+def api_config_save():
+    """保存 config.ini 内容（需密码）"""
+    data = request.get_json()
+    pwd = data.get('password', '')
+    content = data.get('content', '')
+    correct_pwd = get_config_password()
+    if pwd != correct_pwd:
+        return jsonify({'code': 1, 'msg': '密码错误'}), 401
+    if not content.strip():
+        return jsonify({'code': 1, 'msg': '内容不能为空'})
+    try:
+        save_full_config(content)
+        # 重新加载组播配置到内存
+        return jsonify({'code': 0, 'msg': '保存成功，组播列表已更新'})
+    except Exception as e:
+        return jsonify({'code': 1, 'msg': f'保存失败: {str(e)}'}), 500
+
+
 # ===== 代理IP检测 API =====
 
 @app.route('/api/proxy/check', methods=['POST'])
@@ -1475,50 +1638,17 @@ def api_proxy_myip():
             return jsonify({'ip': '无法获取'})
 
 
-# ==================== 管理接口：在线编辑 config.ini ====================
-
-@app.route('/api/admin/config', methods=['GET'])
-def api_admin_config_get():
-    """读取 config.ini（需要管理密码）"""
-    password = request.headers.get('X-Admin-Password', '')
-    if password != ADMIN_PASSWORD:
-        return jsonify({'success': False, 'error': '密码错误'}), 401
-    try:
-        with open(CONFIG_FILE, 'r', encoding='utf-8') as f:
-            content = f.read()
-        return jsonify({'success': True, 'content': content})
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)}), 500
-
-
-@app.route('/api/admin/config', methods=['POST'])
-def api_admin_config_save():
-    """保存 config.ini（需要管理密码）"""
-    password = request.headers.get('X-Admin-Password', '')
-    if password != ADMIN_PASSWORD:
-        return jsonify({'success': False, 'error': '密码错误'}), 401
-    try:
-        data = request.get_json(force=True) or {}
-        content = data.get('content', '')
-        # 简单校验：必须有 [multicast] 节，避免用户误清空
-        if '[multicast]' not in content:
-            return jsonify({'success': False, 'error': '配置缺少 [multicast] 节'}), 400
-        with open(CONFIG_FILE, 'w', encoding='utf-8') as f:
-            f.write(content)
-        return jsonify({'success': True, 'message': '配置已保存，刷新页面后下拉框将使用新配置'})
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)}), 500
-
-
 # ==================== 启动 ====================
 
 if __name__ == '__main__':
+    HOST = os.environ.get('HOST', '0.0.0.0')
+    PORT = int(os.environ.get('PORT', '6604'))
     print("=" * 55)
     print("  测绘空间 IP 筛选工具合集")
     print("  ├─ 酒店 IP 筛选（IPTV IP:Port + 频道 + 拉流验证）")
     print("  ├─ 组播 IP 筛选（连通性 + 组播验证 + 测速）")
     print("  ├─ IPTV 频道查询（频道列表 + M3U导出 + 播放器调用）")
     print("  ├─ 代理IP检测（SOCKS5/SOCKS4/HTTP/HTTPS + 地理位置）")
-    print("  └─ 访问地址: http://127.0.0.1:6604")
+    print(f"  └─ 访问地址: http://127.0.0.1:{PORT}")
     print("=" * 55)
-    app.run(host='0.0.0.0', port=6604, debug=False)
+    app.run(host=HOST, port=PORT, debug=False)

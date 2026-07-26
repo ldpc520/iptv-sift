@@ -1,14 +1,17 @@
-# Python 缓存
+# 忽略非必要文件
+.git
+.gitignore
 __pycache__/
-*.py[cod]
 *.pyc
-*.egg-info/
-.pytest_cache/
-
-# 本地数据/临时文件
-data/
+venv/
+env/
+Lib/
+Include/
+Scripts/
+pyvenv.cfg
+*.bat
+*.tmp
 *.log
-.DS_Store
-
-# 运行时自动生成的配置（如需自定义组播列表，请挂载自己的 config.ini，不要提交运行时副本）
-config.runtime.ini
+.idea/
+.vscode/
+放任意虚拟环境目录中即可激活.bat

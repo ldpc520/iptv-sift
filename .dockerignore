@@ -1,4 +1,4 @@
-# Git
+# 版本控制
 .git
 .gitignore
 
@@ -6,13 +6,29 @@
 __pycache__/
 *.py[cod]
 *.pyc
-*.egg-info/
-.pytest_cache/
+*.pyo
+*.pyd
+.Python
 
-# 文档/说明（不进入镜像，仅作本地备注）
-组播&酒店IP有效性筛选终版.txt
+# 虚拟环境（不打包，镜像内重新安装依赖）
+venv/
+env/
+Lib/
+Include/
+Scripts/
+pyvenv.cfg
+activate.bat
+*.bat
 
-# 本地数据/临时文件
-data/
+# 本地数据
+*.tmp
 *.log
-.DS_Store
+data/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# 文档说明类（可选）
+放任意虚拟环境目录中即可激活.bat
