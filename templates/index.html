@@ -235,6 +235,7 @@
             font-size: 0.9rem;
             font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
             resize: vertical;
+            box-sizing: border-box;
             transition: border-color 0.2s;
             line-height: 1.6;
         }
@@ -348,6 +349,10 @@
         }
         .stat-value.success { color: var(--success); }
         .stat-value.warning { color: var(--warning); }
+        .ls-card { max-width: 1040px; margin: 0 auto; }
+        .ls-table-wrap { max-height:45vh; overflow-y:auto; overflow-x:auto; border:1px solid var(--border); border-radius:var(--radius-sm); }
+        .ls-table-wrap table { width:100%; border-collapse:collapse; font-size:0.85rem; min-width:640px; table-layout:fixed; }
+        /* v2-fix: livesrc panel height constraints */
         .stat-label {
             font-size: 0.8rem;
             color: var(--text-muted);
@@ -987,6 +992,7 @@
             <button class="tab-btn" onclick="switchTab('multicast')" id="tabMulticast">📡 组播IP筛选</button>
             <button class="tab-btn" onclick="switchTab('iptv')" id="tabIptv">📺 酒店频道查询</button>
             <button class="tab-btn" onclick="switchTab('proxy')" id="tabProxy">🛡️ 代理检测</button>
+            <button class="tab-btn" onclick="switchTab('livesrc')" id="tabLivesrc">📺 直播源检测</button>
         </div>
 
         <!-- ==================== 酒店 IP 筛选 Tab ==================== -->
@@ -1381,6 +1387,57 @@
         <div class="mc-footer">组播&酒店IP有效性筛选 | Powered by Flask + aiohttp</div>
     </div>
 
+    <!-- ============ 直播源检测 Tab ============ -->
+    <div class="tab-content" id="tabContentLivesrc">
+        <!-- v2-fix-20260803 -->
+        <div class="card ls-card">
+            <div class="card-title"><span class="icon icon-input">📺</span>直播源检测</div>
+            <p style="color:var(--text-muted);font-size:0.85rem;margin:0 0 14px;line-height:1.6;">
+                粘贴播放地址，支持「名称,地址」或纯地址（空格 / 换行分隔）。自动识别组播、m3u8、PHP 代理三类源。
+            </p>
+            <textarea id="lsUrls" style="height:120px;max-height:200px;" placeholder="广东体育,http://panel.527200.xyz/udp/广东电信/239.77.0.112:5146&#10;CCTV1,http://111.8.177.168:9901/tsfile/live/1077_1.m3u8?key=txiptv&playlive=1&authid=0&#10;无线新闻,http://live.bpzx.dpdns.org/tvbxw.php?id=2"></textarea>
+            <div class="btn-group" style="align-items:center;">
+                <label style="display:inline-flex;align-items:center;gap:8px;cursor:pointer;color:var(--text);font-size:0.9rem;user-select:none;">
+                    <input type="checkbox" id="lsQuick" checked style="width:16px;height:16px;accent-color:var(--primary);" />
+                    快速验证（仅检测有效性，不测速）
+                </label>
+            </div>
+            <div class="btn-group">
+                <button class="btn btn-primary" id="lsCheckBtn" onclick="lsCheck()">⚡ 快速验证</button>
+                <button class="btn btn-outline" id="lsClearBtn" onclick="lsClear()">清空</button>
+            </div>
+        </div>
+
+        <div class="card ls-card" id="lsResultCard" style="display:none;">
+            <div class="card-title"><span class="icon icon-result">📊</span>检测结果</div>
+            <div class="stats-grid">
+                <div class="stat-card"><div class="stat-value" id="lsTotal">0</div><div class="stat-label">总数</div></div>
+                <div class="stat-card"><div class="stat-value success" id="lsValid">0</div><div class="stat-label">有效</div></div>
+                <div class="stat-card"><div class="stat-value warning" id="lsInvalid">0</div><div class="stat-label">无效</div></div>
+            </div>
+            <div class="ls-table-wrap">
+                <table>
+                    <thead>
+                        <tr style="background:var(--bg-input);color:var(--text-muted);">
+                            <th style="padding:12px 14px;text-align:left;width:40px;">#</th>
+                            <th style="padding:12px 14px;text-align:left;width:100px;">频道</th>
+                            <th style="padding:12px 14px;text-align:left;">播放地址</th>
+                            <th style="padding:12px 14px;text-align:left;width:110px;">速度</th>
+                            <th style="padding:12px 14px;text-align:left;width:60px;">状态</th>
+                        </tr>
+                    </thead>
+                    <tbody id="lsResultBody">
+                        <tr><td colspan="5" style="padding:24px;text-align:center;color:var(--text-muted);">暂无数据，粘贴地址后点击「开始检测」</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="btn-group">
+                <button class="btn btn-success" id="lsCopyBtn" disabled onclick="lsCopyValid()">📋 复制有效地址</button>
+                <button class="btn btn-outline" id="lsExportBtn" disabled onclick="lsExportValid()">⬇ 导出有效 TXT</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Toast container -->
     <div id="toastContainer"></div>
 
@@ -1398,7 +1455,139 @@
             document.getElementById('tabContentMulticast').classList.toggle('active', tab === 'multicast');
             document.getElementById('tabContentIptv').classList.toggle('active', tab === 'iptv');
             document.getElementById('tabContentProxy').classList.toggle('active', tab === 'proxy');
+            document.getElementById('tabLivesrc').classList.toggle('active', tab === 'livesrc');
+            document.getElementById('tabContentLivesrc').classList.toggle('active', tab === 'livesrc');
         }
+
+        // ==================== 直播源检测 ====================
+        let lsResults = [];
+
+        function lsParseInput(text) {
+            const items = [];
+            const seen = new Set();
+            const tokens = (text || '').split(/\s+/).map(s => s.trim()).filter(Boolean);
+            for (const tok of tokens) {
+                let name = '', url = tok;
+                const idx = tok.indexOf(',');
+                if (idx >= 0) { name = tok.slice(0, idx).trim(); url = tok.slice(idx + 1).trim(); }
+                if (!url || url.startsWith('#') || !/^https?:\/\//i.test(url)) continue;
+                if (seen.has(url)) continue;
+                seen.add(url);
+                items.push({ name, url });
+            }
+            return items;
+        }
+
+        function lsFmtSpeed(bps) {
+            if (!bps || bps <= 0) return '—';
+            const mbps = (bps * 8) / 1e6;
+            const dec = mbps >= 1 ? 2 : 3;
+            return mbps.toFixed(dec) + ' Mbps';
+        }
+
+        function lsRender(results) {
+            lsResults = results;
+            const valid = results.filter(r => r.valid);
+            document.getElementById('lsTotal').textContent = results.length;
+            document.getElementById('lsValid').textContent = valid.length;
+            document.getElementById('lsInvalid').textContent = results.length - valid.length;
+            const body = document.getElementById('lsResultBody');
+            if (!results.length) {
+                body.innerHTML = '<tr><td colspan="5" style="padding:24px;text-align:center;color:var(--text-muted);">暂无数据</td></tr>';
+            } else {
+                body.innerHTML = results.map((r, i) => {
+                    const cls = r.valid ? '' : ' style="opacity:.8;"';
+                    let speed;
+                    if (r.valid && r.error) {
+                        speed = '<span style="color:var(--warning);">' + escHtml(r.error) + '</span>';
+                    } else if (r.valid) {
+                        speed = lsFmtSpeed(r.speed);
+                    } else {
+                        speed = '<span style="color:var(--danger);" title="' + escAttr(r.error || '') + '">' + escHtml(r.error || '无效') + '</span>';
+                    }
+                    return '<tr' + cls + '>' +
+                        '<td style="padding:10px 14px;">' + (i + 1) + '</td>' +
+                        '<td style="padding:10px 14px;max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + escHtml(r.name || '—') + '</td>' +
+                        '<td style="padding:10px 14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' + escAttr(r.url) + '">' + escHtml(r.url) + '</td>' +
+                        '<td style="padding:10px 14px;">' + speed + '</td>' +
+                        '<td style="padding:10px 14px;"><span style="color:' + (r.valid ? 'var(--success)' : 'var(--danger)') + ';font-weight:600;">' + (r.valid ? '有效' : '无效') + '</span></td>' +
+                        '</tr>';
+                }).join('');
+            }
+            document.getElementById('lsCopyBtn').disabled = valid.length === 0;
+            document.getElementById('lsExportBtn').disabled = valid.length === 0;
+        }
+
+        function lsUpdateBtn() {
+            const q = document.getElementById('lsQuick').checked;
+            document.getElementById('lsCheckBtn').textContent = q ? '⚡ 快速验证' : '▶ 开始测速';
+        }
+
+        async function lsCheck() {
+            const items = lsParseInput(document.getElementById('lsUrls').value);
+            if (!items.length) { showToast('请先输入播放地址', 'error'); return; }
+            const quick = document.getElementById('lsQuick').checked;
+            const btn = document.getElementById('lsCheckBtn');
+            btn.disabled = true;
+            btn.textContent = '检测中…';
+            try {
+                const resp = await fetch('/api/livesrc/check', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ items, quick })
+                });
+                const data = await resp.json();
+                lsRender(data.results || []);
+                document.getElementById('lsResultCard').style.display = '';
+                const v = (data.results || []).filter(r => r.valid).length;
+                showToast((quick ? '验证' : '测速') + '完成：有效 ' + v + ' / ' + (data.results || []).length, 'success');
+            } catch (e) {
+                showToast('请求失败：' + e, 'error');
+            } finally {
+                btn.disabled = false;
+                lsUpdateBtn();
+            }
+        }
+
+        function lsClear() {
+            document.getElementById('lsUrls').value = '';
+            lsRender([]);
+            document.getElementById('lsResultCard').style.display = 'none';
+        }
+
+        function lsGetValid() {
+            return lsResults.filter(r => r.valid).map(r => (r.name ? r.name + ',' : '') + r.url);
+        }
+
+        function lsCopyValid() {
+            const v = lsGetValid();
+            if (!v.length) { showToast('没有有效的地址', 'error'); return; }
+            navigator.clipboard.writeText(v.join('\n')).then(
+                () => showToast('已复制 ' + v.length + ' 个有效地址', 'success'),
+                () => {
+                    const ta = document.createElement('textarea');
+                    ta.value = v.join('\n');
+                    document.body.appendChild(ta); ta.select();
+                    document.execCommand('copy'); ta.remove();
+                    showToast('已复制 ' + v.length + ' 个有效地址', 'success');
+                }
+            );
+        }
+
+        function lsExportValid() {
+            const v = lsGetValid();
+            if (!v.length) { showToast('没有有效的地址', 'error'); return; }
+            const blob = new Blob([v.join('\n') + '\n'], { type: 'text/plain;charset=utf-8' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = 'live_valid_' + new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-') + '.txt';
+            a.click();
+            URL.revokeObjectURL(a.href);
+            showToast('已导出 ' + v.length + ' 个有效地址', 'success');
+        }
+
+        document.getElementById('lsQuick').addEventListener('change', lsUpdateBtn);
+        lsUpdateBtn();
 
         function showToast(msg, type) {
             const container = document.getElementById('toastContainer');

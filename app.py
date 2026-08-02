@@ -17,7 +17,6 @@ import subprocess
 import asyncio
 import concurrent.futures
 import threading
-import shutil
 import urllib.request
 import urllib.error
 import configparser
@@ -42,12 +41,7 @@ except ImportError:
 app = Flask(__name__)
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-# 配置文件存放目录：默认指向镜像内置位置；Docker 部署时通过环境变量指向挂载卷（如 /data）
-CONFIG_DIR = os.environ.get('CONFIG_DIR', BASE_DIR)
-# 持久化配置文件路径（运行时读写都走这里，便于挂载卷实现数据持久化）
-CONFIG_FILE = os.path.join(CONFIG_DIR, 'config.ini')
-# 镜像内置的默认配置（仅作首次种子，容器重启不会覆盖已有配置）
-DEFAULT_CONFIG_FILE = os.path.join(BASE_DIR, 'config.ini')
+CONFIG_FILE = os.path.join(BASE_DIR, 'config.ini')
 
 # ==================== 全局进度 ====================
 
@@ -56,16 +50,9 @@ scan_progress = {"total": 0, "checked": 0, "valid": 0, "status": "idle", "phase"
 
 # ==================== 配置文件（组播用） ====================
 
-# 首次运行：若持久化目录中不存在 config.ini，则从镜像内置默认配置复制（便于挂载卷持久化）
+# 首次运行自动生成 config.ini
 if not os.path.exists(CONFIG_FILE):
-    os.makedirs(CONFIG_DIR, exist_ok=True)
-    if os.path.exists(DEFAULT_CONFIG_FILE) and os.path.abspath(DEFAULT_CONFIG_FILE) != os.path.abspath(CONFIG_FILE):
-        # 用户已挂载卷（如 /data）但卷内为空：用镜像内置默认配置作种子
-        shutil.copyfile(DEFAULT_CONFIG_FILE, CONFIG_FILE)
-        print("已从镜像默认配置初始化: " + CONFIG_FILE)
-    else:
-        # 完全首次运行（未挂载卷），生成内置默认配置
-        default_content = """[multicast]
+    default_content = """[multicast]
 # 格式: 名称|组播地址:端口
 # 一行一个
 广东电信|239.77.0.1:5146
@@ -75,9 +62,9 @@ if not os.path.exists(CONFIG_FILE):
 四川电信|239.93.1.9:2192
 四川成都电信|239.94.2.52:5140
 """
-        with open(CONFIG_FILE, 'w', encoding='utf-8') as f:
-            f.write(default_content)
-        print("已自动生成 config.ini 配置文件")
+    with open(CONFIG_FILE, 'w', encoding='utf-8') as f:
+        f.write(default_content)
+    print("已自动生成 config.ini 配置文件")
 
 
 def load_multicast_config():
@@ -1638,17 +1625,289 @@ def api_proxy_myip():
             return jsonify({'ip': '无法获取'})
 
 
+# ==================== 直播源检测（移植自 IPTV 测速验证工具） ====================
+# 支持三类源：组播代理(/udp/)、HLS m3u8、PHP/跳转代理；并发测速 + 快速验证
+from urllib.parse import quote, urljoin, urlunsplit, urlsplit
+
+LS_MAX_SAMPLE_SECONDS = 5.0
+LS_CONCURRENCY = 8
+LS_REQUEST_TIMEOUT = aiohttp.ClientTimeout(total=40, connect=15)
+LS_MAX_RETRIES = 3
+LS_RETRY_BACKOFF = 1.5
+
+
+def ls_encode_url(url):
+    parts = urlsplit(url)
+    path = quote(parts.path, safe="/:@")
+    return parts._replace(path=path).geturl()
+
+
+def ls_looks_like_m3u8(text):
+    return text.replace("\ufeff", "").lstrip().startswith("#EXTM3U")
+
+
+def ls_dir_and_query(m3u8_url):
+    sp = urlsplit(m3u8_url)
+    d = sp.path.rsplit("/", 1)[0]
+    if not d.endswith("/"):
+        d += "/"
+    base = urlunsplit((sp.scheme, sp.netloc, d, "", ""))
+    return base, sp.query
+
+
+def ls_with_query(url, query):
+    if query and "?" not in url:
+        return url + "?" + query
+    return url
+
+
+async def ls_resolve_segment(session, m3u8_url, depth=0):
+    if depth > 4:
+        return None
+    try:
+        async with session.get(ls_encode_url(m3u8_url), allow_redirects=True,
+                                headers={"User-Agent": "Mozilla/5.0"}) as resp:
+            if resp.status >= 400:
+                return None
+            text = await resp.text()
+    except Exception:
+        return None
+    base, query = ls_dir_and_query(str(resp.url))
+    lines = [ln.strip() for ln in text.splitlines()
+             if ln.strip() and not ln.strip().startswith("#")]
+    if not lines:
+        return None
+    if any(ln.endswith(".m3u8") for ln in lines):
+        nxt = ls_with_query(urljoin(base, lines[0]), query)
+        return await ls_resolve_segment(session, nxt, depth + 1)
+    return ls_with_query(urljoin(base, lines[0]), query)
+
+
+async def ls_aio_measure(session, url, quick=False):
+    start = time.perf_counter()
+    is_udp = "/udp/" in url
+    try:
+        async with session.get(ls_encode_url(url), allow_redirects=True,
+                                headers={"User-Agent": "Mozilla/5.0"}) as resp:
+            if resp.status >= 400:
+                return {"valid": False, "speed": 0.0, "error": f"HTTP {resp.status}"}
+            first = await resp.content.read(8192)
+            if not first and is_udp:
+                for _ in range(6):
+                    await asyncio.sleep(0.5)
+                    first = await resp.content.read(8192)
+                    if first:
+                        break
+            if not first:
+                if is_udp:
+                    return {"valid": True, "speed": 0.0, "error": "连接成功(无采样)"}
+                return {"valid": False, "speed": 0.0, "error": "空响应"}
+            text_first = first.decode("utf-8", "ignore").strip()
+            ctype = resp.headers.get("Content-Type", "").lower()
+            if "mpegurl" in ctype or ".m3u8" in text_first or ls_looks_like_m3u8(text_first):
+                seg = await ls_resolve_segment(session, str(resp.url))
+                if not seg:
+                    return {"valid": False, "speed": 0.0, "error": "无法解析 m3u8"}
+                return await ls_measure(session, seg, quick=quick)
+            m = re.search(r"https?://[^\s\"'<>]+", text_first)
+            if m:
+                return await ls_measure(session, m.group(0), quick=quick)
+            if quick:
+                elapsed = time.perf_counter() - start
+                return {"valid": True,
+                        "speed": len(first) / elapsed if elapsed > 0 else 0.0,
+                        "bytes": len(first), "elapsed": round(elapsed, 4)}
+            total = len(first)
+            deadline = time.perf_counter() + LS_MAX_SAMPLE_SECONDS
+            while time.perf_counter() < deadline:
+                chunk = await resp.content.read(65536)
+                if not chunk:
+                    break
+                total += len(chunk)
+            elapsed = time.perf_counter() - start
+            speed = total / elapsed if elapsed > 0 else 0.0
+            return {"valid": True, "speed": speed, "bytes": total,
+                    "elapsed": round(elapsed, 2)}
+    except Exception as exc:
+        return {"valid": False, "speed": 0.0, "error": str(exc)}
+
+
+def ls_sync_resolve(m3u8_url, depth=0):
+    if depth > 4:
+        return None
+    try:
+        req = urllib.request.Request(ls_encode_url(m3u8_url),
+                                     headers={"User-Agent": "Mozilla/5.0"})
+        resp = urllib.request.urlopen(req, timeout=20)
+        if resp.status >= 400:
+            return None
+        text = resp.read().decode("utf-8", "ignore")
+        final = resp.geturl()
+    except Exception:
+        return None
+    base, query = ls_dir_and_query(final)
+    lines = [ln.strip() for ln in text.splitlines()
+             if ln.strip() and not ln.strip().startswith("#")]
+    if not lines:
+        return None
+    if any(ln.endswith(".m3u8") for ln in lines):
+        return ls_sync_resolve(ls_with_query(urljoin(base, lines[0]), query), depth + 1)
+    return ls_with_query(urljoin(base, lines[0]), query)
+
+
+def ls_sync_measure(url, quick=False):
+    start = time.perf_counter()
+    is_udp = "/udp/" in url
+    try:
+        req = urllib.request.Request(ls_encode_url(url),
+                                     headers={"User-Agent": "Mozilla/5.0"})
+        resp = urllib.request.urlopen(req, timeout=25)
+        if resp.status >= 400:
+            return {"valid": False, "speed": 0.0, "error": f"HTTP {resp.status}"}
+        first = resp.read(8192)
+        if not first and is_udp:
+            for _ in range(6):
+                time.sleep(0.5)
+                first = resp.read(8192)
+                if first:
+                    break
+        if not first:
+            if is_udp:
+                return {"valid": True, "speed": 0.0, "error": "连接成功(无采样)"}
+            return {"valid": False, "speed": 0.0, "error": "空响应"}
+        text_first = first.decode("utf-8", "ignore").strip()
+        ctype = resp.headers.get("Content-Type", "").lower()
+        if "mpegurl" in ctype or ".m3u8" in text_first or ls_looks_like_m3u8(text_first):
+            seg = ls_sync_resolve(url)
+            if not seg:
+                return {"valid": False, "speed": 0.0, "error": "无法解析 m3u8"}
+            return ls_sync_measure(seg, quick=quick)
+        m = re.search(r"https?://[^\s\"'<>]+", text_first)
+        if m:
+            return ls_sync_measure(m.group(0), quick=quick)
+        if quick:
+            elapsed = time.perf_counter() - start
+            return {"valid": True,
+                    "speed": len(first) / elapsed if elapsed > 0 else 0.0,
+                    "bytes": len(first), "elapsed": round(elapsed, 4)}
+        total = len(first)
+        deadline = time.perf_counter() + LS_MAX_SAMPLE_SECONDS
+        while time.perf_counter() < deadline:
+            chunk = resp.read(65536)
+            if not chunk:
+                break
+            total += len(chunk)
+        elapsed = time.perf_counter() - start
+        speed = total / elapsed if elapsed > 0 else 0.0
+        return {"valid": True, "speed": speed, "bytes": total,
+                "elapsed": round(elapsed, 2)}
+    except Exception as exc:
+        return {"valid": False, "speed": 0.0, "error": str(exc)}
+
+
+def ls_should_retry(error):
+    if not error:
+        return False
+    if error.startswith("HTTP "):
+        code = error.split(" ", 1)[1].split()[0]
+        return code in ("502", "503", "504", "429")
+    low = error.lower()
+    for kw in ("timeout", "cannot connect", "connection reset", "远程主机",
+               "连接尝试失败", "name or service", "getaddrinfo", "空响应",
+               "无法解析 m3u8"):
+        if kw in low:
+            return True
+    return False
+
+
+async def ls_measure(session, url, quick=False):
+    last = None
+    for attempt in range(LS_MAX_RETRIES):
+        res = await ls_aio_measure(session, url, quick=quick)
+        last = res
+        if res["valid"]:
+            return res
+        try:
+            sync_res = await asyncio.to_thread(ls_sync_measure, url, quick=quick)
+            if sync_res["valid"]:
+                return sync_res
+            last = sync_res
+        except Exception:
+            pass
+        if not (ls_should_retry(res.get("error", "")) or
+                ls_should_retry(last.get("error", "") if last else "")):
+            return last
+        if attempt < LS_MAX_RETRIES - 1:
+            await asyncio.sleep(LS_RETRY_BACKOFF * (attempt + 1))
+    return last
+
+
+async def ls_check_all(urls, quick=False):
+    connector = aiohttp.TCPConnector(limit=LS_CONCURRENCY, limit_per_host=4,
+                                     ssl=False, enable_cleanup_closed=True)
+    async with aiohttp.ClientSession(connector=connector,
+                                     timeout=LS_REQUEST_TIMEOUT) as session:
+        return await asyncio.gather(
+            *(ls_measure(session, u, quick=quick) for u in urls))
+
+
+def ls_is_valid_url(url):
+    u = url.strip()
+    if not u:
+        return False
+    if u.startswith("#"):
+        return False
+    return bool(re.match(r"^https?://", u, re.IGNORECASE))
+
+
+@app.route('/api/livesrc/check', methods=['POST'])
+def api_livesrc_check():
+    data = request.get_json(silent=True) or {}
+    raw = data.get("items") or data.get("urls") or []
+    if isinstance(raw, str):
+        raw = raw.splitlines()
+    items, seen = [], set()
+    for it in raw:
+        if isinstance(it, dict):
+            name = str(it.get("name", "")).strip()
+            url = str(it.get("url", "")).strip()
+        else:
+            s = str(it).strip()
+            if "," in s:
+                name, url = s.split(",", 1)
+                name, url = name.strip(), url.strip()
+            else:
+                name, url = "", s
+        if not ls_is_valid_url(url):
+            continue
+        if url not in seen:
+            seen.add(url)
+            items.append((name, url))
+    if not items:
+        return jsonify({"results": []})
+    quick = bool(data.get("quick", False))
+    urls = [u for _, u in items]
+    results = asyncio.run(ls_check_all(urls, quick=quick))
+    out = []
+    for (name, url), r in zip(items, results):
+        out.append({
+            "name": name, "url": url,
+            "valid": bool(r.get("valid")),
+            "speed": round(float(r.get("speed", 0.0)), 2),
+            "error": r.get("error", ""),
+        })
+    return jsonify({"results": out})
+
+
 # ==================== 启动 ====================
 
 if __name__ == '__main__':
-    HOST = os.environ.get('HOST', '0.0.0.0')
-    PORT = int(os.environ.get('PORT', '6604'))
     print("=" * 55)
     print("  测绘空间 IP 筛选工具合集")
     print("  ├─ 酒店 IP 筛选（IPTV IP:Port + 频道 + 拉流验证）")
     print("  ├─ 组播 IP 筛选（连通性 + 组播验证 + 测速）")
     print("  ├─ IPTV 频道查询（频道列表 + M3U导出 + 播放器调用）")
     print("  ├─ 代理IP检测（SOCKS5/SOCKS4/HTTP/HTTPS + 地理位置）")
-    print(f"  └─ 访问地址: http://127.0.0.1:{PORT}")
+    print("  └─ 访问地址: http://127.0.0.1:6606")
     print("=" * 55)
-    app.run(host=HOST, port=PORT, debug=False)
+    app.run(host='0.0.0.0', port=6606, debug=False)
