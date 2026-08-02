@@ -1908,6 +1908,6 @@ if __name__ == '__main__':
     print("  ├─ 组播 IP 筛选（连通性 + 组播验证 + 测速）")
     print("  ├─ IPTV 频道查询（频道列表 + M3U导出 + 播放器调用）")
     print("  ├─ 代理IP检测（SOCKS5/SOCKS4/HTTP/HTTPS + 地理位置）")
-    print("  └─ 访问地址: http://127.0.0.1:6606")
+    print("  └─ 访问地址: http://127.0.0.1:6604")
     print("=" * 55)
-    app.run(host='0.0.0.0', port=6606, debug=False)
+    app.run(host='0.0.0.0', port=6604, debug=False)
